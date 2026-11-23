@@ -5,7 +5,9 @@ Instructions for any AI coding agent working in this repo.
 ## Project
 A 3D palletizing simulator built as a **learning project** (robotics + data structures & algorithms).
 - `core/`: C++17 packing engine (geometry, constraints, greedy and Extreme-Points packers, WES layer)
-- `web/`: three.js viewer that replays placement plans step by step (added in Phase 6)
+- `web/`: three.js + Vite viewer that replays plans step by step; `web/src/wasm.js` loads the
+  engine compiled to WebAssembly; `web/e2e/` holds the Playwright tests
+- `core/src/api.cpp`: the JSON entry points shared by the CLI apps and `core/wasm/bindings.cpp`
 - `idea/`: the idea (`idea.md`), the phased roadmap (`steps.md`) and concept notes (`concepts.md`)
 
 ## Commands
@@ -15,10 +17,18 @@ make -C core test       # run unit tests (must pass before a phase is called don
 make -C core bench      # greedy vs extreme-points over 50 seeds
 make -C core run        # write build/plan_greedy.json and build/plan_ep.json (seed 42)
 make -C core clean
+make -C core plans      # write the viewer's data into web/public/data/
+make -C core wasm       # compile the engine to WebAssembly (needs Emscripten em++)
 ./core/build/bin/palletize --algo greedy|ep --n 40 --seed 42 [--out plan.json]
+./core/build/bin/wes_sim --orders 24 --seed 7 [--policy waves|order] [--out wes.json]
+
+cd web && npm install
+npm run dev             # regenerates data + WASM, then starts Vite on :5173
+npm run build           # production build into web/dist
+npm run test:e2e        # Playwright end-to-end tests (desktop + mobile) against the build
 ```
-Later phases add `make -C core wasm` and `cd web && npm run dev`.
-CI: `.github/workflows/ci.yml` builds and tests on Ubuntu + macOS.
+CI/CD: `.github/workflows/ci.yml` runs core tests (Ubuntu + macOS), then e2e, then deploys
+`web/dist` to GitHub Pages on pushes to main.
 
 ## Conventions
 - **Units**: lengths in integer **millimetres** (`int`), weight in **kg** (`double`).

@@ -1,25 +1,87 @@
-# Continuous Integration: on every push and pull request, GitHub spins up fresh machines,
-# builds the C++ core and runs the tests. A failing test turns the commit/PR red.
-name: CI
+# CI/CD for the whole project.
+#
+#   core ──▶ e2e ──▶ deploy (main only)
+#
+# CI  (every push and pull request): build and test the C++ engine on Linux + macOS, then build the
+#     website (C++ plans + WebAssembly + Vite) and run the Playwright end-to-end tests against it.
+# CD  (pushes to main, only if everything above passed): publish the website to GitHub Pages.
+name: CI/CD
 
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+# Only one deployment at a time; a newer push cancels an older run still in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   core:
-    # Matrix = run the same job on several machines in parallel. Linux uses libstdc++,
-    # macOS uses libc++: running both also proves our seeded randomness is portable.
+    # Matrix = the same job on several machines in parallel. Linux uses libstdc++, macOS libc++:
+    # running both also proves the seeded randomness gives identical boxes everywhere.
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4          # clone the repo onto the runner
+      - uses: actions/checkout@v7
       - name: Build
-        run: make -C core -j4               # -j4 = compile 4 files in parallel
+        run: make -C core -j4
       - name: Unit + property tests
         run: make -C core test
       - name: Benchmark (smoke run)
         run: ./core/build/bin/bench --seeds 5
+
+  e2e:
+    needs: core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: emscripten-core/setup-emsdk@v16
+        with:
+          version: 7.0.1
+      - name: Install web dependencies
+        run: npm ci
+        working-directory: web
+      - name: Install the Playwright browser
+        run: npx playwright install --with-deps chromium
+        working-directory: web
+      - name: Build the site (C++ plans + WebAssembly + Vite)
+        run: npm run build
+        working-directory: web
+      - name: End-to-end tests
+        run: npm run test:e2e
+        working-directory: web
+      - name: Keep the site for deployment
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: web/dist
+      - name: Upload the test report if something failed
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: web/playwright-report
+
+  deploy:
+    needs: e2e
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write     # publish to GitHub Pages
+      id-token: write  # prove to Pages that this workflow is who it says it is (OIDC)
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

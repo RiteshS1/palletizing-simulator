@@ -249,3 +249,111 @@ brute-force **oracle** (pairwise O(n²) intersection) so a packer bug can't hide
 ### CI with GitHub Actions
 `.github/workflows/ci.yml`: on push/PR, a **matrix** of Ubuntu + macOS runners builds and tests.
 Two standard libraries (libstdc++ and libc++) also prove the seeded generator is portable.
+
+---
+
+## Phase 6: three.js viewer
+
+### The web toolchain
+- **npm**: package manager. `package.json` lists dependencies (`three`) and dev tools
+  (`vite`, `@playwright/test`); `package-lock.json` pins exact versions so CI installs the same.
+- **Vite**: dev server with instant reload, and a bundler (`vite build`) that turns source files
+  plus npm packages into a few optimised files in `dist/`. `base: './'` makes paths relative so the
+  site works under GitHub Pages' `/<repo>/` sub-path.
+- **npm script hooks**: `predev`/`prebuild` run automatically before `dev`/`build`, so the C++
+  data and the WASM are always regenerated first.
+
+### Scene graph and frames
+A scene graph is a tree of objects; each node's transform applies to all of its children.
+The pallet frame is one `Group` scaled mm→m and rotated −90° about x, so the planner's z-up
+millimetre numbers can be used unchanged inside it. Swapping y and z by hand would be a
+**reflection** (determinant −1, flips handedness), not a rotation: a classic bug.
+
+### Animation loop
+`requestAnimationFrame` calls `tick` before every screen refresh (~60 Hz). Each frame advances a
+progress value `t` by `dt × speed`, so playback speed doesn't depend on the frame rate.
+State (step, t) is the single source of truth; meshes are derived from it every frame.
+
+### Replaying a plan as a trajectory
+A plan is an ordered list of place poses. Showing step k = show placements [0, k); the box being
+placed is lowered (ease-out) by the gripper, then the gripper lifts away.
+
+### CSS `[hidden]` gotcha (found by an e2e test)
+An author rule like `display: grid` beats the browser's `[hidden] { display: none }`, so a
+"hidden" overlay stayed on top of the canvas and swallowed mouse drags. Fix: `[hidden] { display: none !important; }`.
+
+---
+
+## Phase 7: WES order layer
+
+### Priority queue (binary heap)
+`std::priority_queue` gives O(log n) push/pop and O(1) peek at the most urgent order. It's a
+**max-heap**, so the comparator must answer "is a LESS urgent than b?" (the reverse of what you'd
+expect). Urgency = priority, then earliest deadline, then id (first come, first served).
+
+### Hash map by destination
+`std::unordered_map<std::string, std::vector<int>>`: destination → its open pallets or waiting
+orders, O(1) average lookup.
+
+### First-Fit vs Best-Fit
+First-Fit: the first pallet that can take the order. Best-Fit: the pallet that ends up fullest,
+which keeps emptier pallets free for big orders later.
+
+### Online vs offline packing (the key lesson)
+Order by order (online), each order is packed without knowing the next. The first order leaves a
+ragged top surface, so the next order's boxes fail the support and load-bearing rules, and a
+whole order fails if one box does. Result: 15 pallets at ~19% fill for 24 orders.
+
+### Waves: batching trades latency for efficiency
+Hold orders per destination until about a pallet's worth is waiting (or a deadline forces a start),
+then plan the batch together with the offline packer, dropping the least urgent orders if it
+overflows. Result for the same 24 orders: 7 pallets at ~42% fill, but the shift takes 1511 s
+instead of 1037 s because orders wait. The same trade-off appears in disk I/O, network
+packets (Nagle's algorithm) and database group commits.
+
+### Event-driven simulation
+Instead of ticking a clock every second, jump straight to the next interesting time: the next order
+arrival or the moment a waiting order must start to meet its deadline.
+
+---
+
+## Phase 8: WebAssembly
+
+### What it is
+WASM is a compact, sandboxed bytecode that browsers run at near-native speed. Emscripten's `em++`
+is a drop-in for clang++ that outputs `palletizer.wasm` (the code, ~195 KB) plus `palletizer.js`
+(the loader that fetches and instantiates it).
+
+### embind and the API boundary
+`core/wasm/bindings.cpp` exposes `pack(...)` and `wes(...)` to JavaScript. Both return JSON
+strings, which keeps the boundary tiny. They call the same `api.cpp` functions as the CLI apps:
+**one core, two front-ends**.
+
+### Proof that it's the same code
+The e2e test runs the planner inside the browser and compares the result with the CLI's JSON for
+the same seed: byte-for-byte identical (except runtime). This works only because the random numbers
+are mapped by our own code (Phase 1) and iteration orders are deterministic (`std::set`, Phase 4).
+EP runs ~3× slower in WASM than native (about 20 ms vs 6 ms), still instant.
+
+### Flags
+`-sMODULARIZE -sEXPORT_ES6`: an ES module exporting a factory; `-sENVIRONMENT=web`: no Node glue;
+`-sALLOW_MEMORY_GROWTH`: the heap can grow; `-lembind`: link the binding library.
+
+---
+
+## Testing and delivery
+
+### End-to-end tests with Playwright
+`web/e2e/viewer.spec.js` drives a real headless Chromium against the production build, on a desktop
+and a phone viewport: autoplay, transport buttons, keyboard, conveyor clicks, side-by-side winner,
+orders all done, WASM == CLI, in-browser packing, no sideways scrolling, reduced motion, and a
+check that the WebGL canvas isn't blank. CI has no GPU, so WebGL runs on SwiftShader (software).
+
+### Flaky tests and auto-retrying assertions
+Meshes update on the next animation frame, not instantly. Asserting once can race the renderer;
+`expect.poll(...)` retries until it passes or times out. Running with `--repeat-each 3` catches flakiness.
+
+### CI/CD pipeline
+`core (Linux + macOS) → e2e → deploy`. `needs:` chains jobs; the deploy job runs only on pushes to
+main and only if every test passed. It uses OIDC (`id-token: write`) instead of a stored secret
+to prove its identity to GitHub Pages.

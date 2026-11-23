@@ -21,7 +21,7 @@ fast rules that give good (not provably optimal) answers in milliseconds.
    stability and runtime.
 3. **3D viewer (three.js)**: replay a plan box by box in the browser, like watching the robot work.
 4. **WES layer**: a small order queue that decides which pallet each customer order goes to.
-5. *(Optional)* **WebAssembly**: compile the C++ core so it runs live in the page.
+5. **WebAssembly**: the same C++ core compiled to run live in the page.
 
 ## Rules a placement must satisfy
 | Rule | Meaning | Default |

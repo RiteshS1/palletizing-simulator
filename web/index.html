@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Palletizing Simulator</title>
+    <meta
+      name="description"
+      content="Watch a robot stack mixed cartons onto a pallet box by box, and compare a greedy packer with an extreme-points heuristic."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <h1>Palletizing simulator</h1>
+        <div class="modes" role="tablist" aria-label="What to show">
+          <button role="tab" data-mode="greedy">Greedy layer</button>
+          <button role="tab" data-mode="ep">Extreme points</button>
+          <button role="tab" data-mode="compare">Side by side</button>
+          <button role="tab" data-mode="orders" hidden>Orders</button>
+        </div>
+      </header>
+
+      <main class="stage" id="stage" aria-label="3D view of the pallet. Drag to orbit, scroll to zoom.">
+        <p class="empty" id="empty" hidden></p>
+      </main>
+
+      <section class="timeline" aria-label="Placement sequence">
+        <div class="counter" aria-live="polite">
+          <span class="count" id="step-now">0</span>
+          <span class="count-label">of <span id="step-total">0</span> boxes placed</span>
+        </div>
+        <div class="transport">
+          <button id="btn-restart" aria-label="Back to the start (Home)" title="Back to the start (Home)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 4v12M16 4 8 10l8 6z" /></svg>
+          </button>
+          <button id="btn-back" aria-label="Remove last box (Left arrow)" title="Remove last box (←)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M14 4 6 10l8 6z" /></svg>
+          </button>
+          <button id="btn-play" class="play" aria-label="Play (Space)" title="Play (Space)">
+            <svg viewBox="0 0 20 20" aria-hidden="true" class="icon-play"><path d="M6 4l10 6-10 6z" /></svg>
+            <svg viewBox="0 0 20 20" aria-hidden="true" class="icon-pause"><path d="M5 4h4v12H5zM11 4h4v12h-4z" /></svg>
+          </button>
+          <button id="btn-forward" aria-label="Place next box (Right arrow)" title="Place next box (→)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 4l8 6-8 6z" /></svg>
+          </button>
+          <button id="btn-end" aria-label="Jump to the finished pallet (End)" title="Jump to the finished pallet (End)">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M15 4v12M4 4l8 6-8 6z" /></svg>
+          </button>
+          <label class="speed">
+            <span>Speed</span>
+            <select id="speed">
+              <option value="1">1 box/s</option>
+              <option value="2" selected>2 boxes/s</option>
+              <option value="4">4 boxes/s</option>
+              <option value="10">10 boxes/s</option>
+            </select>
+          </label>
+        </div>
+        <div class="strip" id="strip" role="group" aria-label="Boxes in placement order. Select one to jump there."></div>
+      </section>
+
+      <aside class="panel">
+        <section>
+          <h2>Placing now</h2>
+          <div id="now"></div>
+        </section>
+
+        <section>
+          <h2>On the pallet so far</h2>
+          <table class="figures" id="live"></table>
+          <label class="toggle"><input type="checkbox" id="show-com" checked /> Show center of mass</label>
+        </section>
+
+        <section>
+          <h2 id="final-title">Finished plan</h2>
+          <table class="figures" id="final"></table>
+        </section>
+
+        <section id="orders-section" hidden>
+          <h2>Order queue</h2>
+          <p class="hint">Highest priority first, then earliest deadline. One order never spans two pallets.</p>
+          <ol class="orders" id="orders"></ol>
+        </section>
+
+        <section id="generate-section">
+          <h2>Try other boxes</h2>
+          <form id="generate" class="generate">
+            <label data-for="plans">Boxes <input type="number" name="n" min="5" max="120" value="40" /></label>
+            <label data-for="orders" hidden>Orders <input type="number" name="orders" min="3" max="60" value="24" /></label>
+            <label>Seed <input type="number" name="seed" min="1" max="999999" value="42" /></label>
+            <label data-for="plans">Min. support (%) <input type="number" name="support" min="30" max="100" step="5" value="75" /></label>
+            <button type="submit" id="btn-generate">Pack these boxes</button>
+          </form>
+          <p class="hint" id="generate-status"></p>
+        </section>
+
+        <section class="legend" id="legend" aria-label="Colour key">
+          <div class="legend-bar"></div>
+          <div class="legend-labels"><span id="legend-min">light</span><span id="legend-max">heavy</span></div>
+        </section>
+      </aside>
+    </div>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

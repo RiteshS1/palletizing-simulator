@@ -36,17 +36,19 @@ Tick the box when a phase is done.
   - Learn: utilization metrics, fair benchmarking (same seeds, mean/std), serialization
   - Verify: `make bench` prints a comparison table
 
-- [ ] **Phase 6: three.js viewer** (`web/`)
+- [x] **Phase 6: three.js viewer** (`web/`)
   - Build: pallet and boxes, orbit camera, play/pause/step slider, algorithm toggle, metrics panel
   - Learn: scene graph, z-up to y-up frame conversion, animation loop, replaying a plan
   - Verify: viewer metrics match the CLI output
 
-- [ ] **Phase 7: WES order layer** (`wes.cpp`, `wes_sim`)
-  - Build: order priority queue, order-to-pallet assignment, pallet open/close, multi-pallet view
-  - Learn: heaps, hash maps, First-Fit/Best-Fit at order level, event-driven simulation
+- [x] **Phase 7: WES order layer** (`wes.cpp`, `wes_sim`)
+  - Build: two policies (order-by-order with a priority queue, and batched waves), order-to-pallet
+    assignment, pallet open/close, multi-pallet "Orders" view with stretch-wrapped shipped pallets
+  - Learn: heaps, hash maps, First-Fit/Best-Fit, online vs offline packing, wave batching,
+    latency vs efficiency, event-driven simulation
   - Verify: each order assigned exactly once; no pallet breaks a limit
 
-- [ ] **Phase 8 (optional): WebAssembly**
+- [x] **Phase 8: WebAssembly**
   - Build: `make wasm` with Emscripten + embind; "generate live" button in the viewer
   - Learn: WASM, embind, one C++ core shared by CLI and browser
   - Verify: browser output identical to CLI output for the same seed
@@ -55,8 +57,8 @@ Tick the box when a phase is done.
 | Layer | Tool | Arrives in |
 |---|---|---|
 | Unit tests | own `TEST`/`CHECK` runner (`core/tests/`) | Phase 1 (done) |
-| Property / invariant tests | same runner, 100s of random seeds, assert every rule holds | Phase 3–4 (done) |
+| Property / invariant tests | same runner, 100s of random seeds, assert every rule holds | Phase 3–4, 7 (done) |
 | Benchmark / regression | `bench` app, fixed seeds | Phase 5 (done) |
 | CI | GitHub Actions: build + test on every push/PR (`.github/workflows/ci.yml`) | Phase 5 (done) |
-| End-to-end (e2e) | Playwright: open viewer in headless browser, press play, assert | Phase 6 |
-| CD | GitHub Actions deploys the viewer to GitHub Pages on merge to main | Phase 6 |
+| End-to-end (e2e) | Playwright (`web/e2e/`): desktop + mobile, incl. WASM == CLI check | Phase 6–8 (done) |
+| CD | Same workflow deploys the viewer to GitHub Pages after all tests pass on main | Phase 6–8 (done) |
