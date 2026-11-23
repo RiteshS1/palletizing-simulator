@@ -110,32 +110,45 @@ int64_t contactArea(const AABB& c, double supportRatio, const std::vector<Placem
 //   3. closest to the back (y), then to the left (x)
 using Score = std::tuple<int, int64_t, int, int>;
 
+// Best valid spot for box b among the current extreme points; false if none.
+bool bestPlacement(const PalletState& pallet, const PointSet& points, const Box& b, Placement& out) {
+    bool found = false;
+    Score bestScore;
+    for (const Vec3& ep : points) {
+        for (bool rot : {false, true}) {
+            if (rot && b.w == b.d) continue;  // square base: rotating changes nothing
+            Placement cand{b, ep, rot};
+            CheckResult r = pallet.check(cand);
+            if (!r.ok()) continue;
+            AABB a = cand.aabb();
+            Score sc{a.min.z, -contactArea(a, r.supportRatio, pallet.placements(), pallet.spec()),
+                     a.min.y, a.min.x};
+            if (!found || sc < bestScore) {
+                found = true;
+                out = cand;
+                bestScore = sc;
+            }
+        }
+    }
+    return found;
+}
+
+// Rebuild the extreme points of a pallet that already has boxes on it (used by the WES layer,
+// which keeps adding orders to partly built pallets).
+PointSet rebuildPoints(const PalletState& pallet) {
+    PointSet points{Vec3{0, 0, 0}};
+    for (const Placement& p : pallet.placements()) updatePoints(points, pallet, p);
+    return points;
+}
+
 PackResult runOnce(const std::vector<Box>& order, const PalletSpec& spec, const Rules& rules) {
     PalletState pallet(spec, rules);
     PointSet points{Vec3{0, 0, 0}};
     std::vector<Box> unplaced;
 
     for (const Box& b : order) {
-        bool found = false;
         Placement best;
-        Score bestScore;
-        for (const Vec3& ep : points) {
-            for (bool rot : {false, true}) {
-                if (rot && b.w == b.d) continue;  // square base: rotating changes nothing
-                Placement cand{b, ep, rot};
-                CheckResult r = pallet.check(cand);
-                if (!r.ok()) continue;
-                AABB a = cand.aabb();
-                Score sc{a.min.z, -contactArea(a, r.supportRatio, pallet.placements(), spec),
-                         a.min.y, a.min.x};
-                if (!found || sc < bestScore) {
-                    found = true;
-                    best = cand;
-                    bestScore = sc;
-                }
-            }
-        }
-        if (!found) {
+        if (!bestPlacement(pallet, points, b, best)) {
             unplaced.push_back(b);
             continue;
         }
@@ -202,6 +215,37 @@ PackResult packExtremePoints(const std::vector<Box>& boxes, const PalletSpec& sp
         if (better(r, best)) best = r;
     }
     return best;
+}
+
+bool addBoxesExtremePoints(PalletState& pallet, const std::vector<Box>& boxes) {
+    // Multi-start again: try a few box orders; keep the successful one with the lowest stack
+    // (a lower, flatter top leaves more room for the orders that come after).
+    const std::vector<std::vector<Box>> orders = {
+        sortedBy(boxes, [](const Box& b) { return b.weight; }),
+        sortedBy(boxes, [](const Box& b) { return b.baseArea(); }),
+        sortedBy(boxes, [](const Box& b) { return b.volume(); }),
+        sortedBy(boxes, [](const Box& b) { return std::make_pair(b.h, b.baseArea()); }),
+    };
+    const PointSet startPoints = rebuildPoints(pallet);
+    bool any = false;
+    PalletState best;
+    for (const auto& order : orders) {
+        PalletState trial = pallet;  // work on a copy: all-or-nothing
+        PointSet points = startPoints;
+        bool ok = true;
+        for (const Box& b : order) {
+            Placement spot;
+            if (!bestPlacement(trial, points, b, spot)) { ok = false; break; }
+            trial.tryPlace(spot);
+            updatePoints(points, trial, spot);
+        }
+        if (ok && (!any || trial.stackHeight() < best.stackHeight())) {
+            best = trial;
+            any = true;
+        }
+    }
+    if (any) pallet = std::move(best);  // otherwise `pallet` stays untouched
+    return any;
 }
 
 }  // namespace pal

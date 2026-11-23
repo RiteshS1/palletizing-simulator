@@ -14,7 +14,7 @@ TEST_SRC := $(wildcard tests/*.cpp)
 TEST_OBJ := $(TEST_SRC:%.cpp=$(BUILD)/%.o)
 TEST_BIN := $(BUILD)/bin/run_tests
 
-.PHONY: all test bench run clean
+.PHONY: all test bench run plans wasm clean
 
 all: $(APPS) $(TEST_BIN)
 
@@ -42,6 +42,26 @@ $(BUILD)/bin/%: $(BUILD)/apps/%.o $(LIB_OBJ)
 $(TEST_BIN): $(TEST_OBJ) $(LIB_OBJ)
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $^ -o $@
+
+# Plans the web viewer loads (seed 42, 40 boxes), written into web/public/data/.
+DATA = ../web/public/data
+plans: $(BUILD)/bin/palletize $(BUILD)/bin/wes_sim
+	@mkdir -p $(DATA)
+	./$(BUILD)/bin/palletize --algo greedy --seed 42 --out $(DATA)/plan_greedy.json
+	./$(BUILD)/bin/palletize --algo ep --seed 42 --out $(DATA)/plan_ep.json
+	./$(BUILD)/bin/wes_sim --orders 24 --seed 7 --out $(DATA)/wes.json
+
+# The same engine compiled to WebAssembly for the browser (needs Emscripten: em++).
+#   -lembind             C++ <-> JS bindings (wasm/bindings.cpp)
+#   MODULARIZE+EXPORT_ES6  output is an ES module exporting a factory function
+#   ENVIRONMENT=web      no Node.js glue code
+#   ALLOW_MEMORY_GROWTH  the heap can grow for big plans
+WASM_OUT = ../web/public/wasm
+wasm: $(LIB_SRC) wasm/bindings.cpp $(wildcard include/*.hpp)
+	@mkdir -p $(WASM_OUT)
+	em++ -std=c++17 -O2 $(CPPFLAGS) $(LIB_SRC) wasm/bindings.cpp -lembind \
+		-sMODULARIZE=1 -sEXPORT_ES6=1 -sENVIRONMENT=web -sALLOW_MEMORY_GROWTH=1 \
+		-o $(WASM_OUT)/palletizer.js
 
 clean:
 	rm -rf $(BUILD)

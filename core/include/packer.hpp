@@ -31,4 +31,9 @@ struct EPOptions {
 PackResult packExtremePoints(const std::vector<Box>& boxes, const PalletSpec& spec = {},
                              const Rules& rules = {}, const EPOptions& options = {});
 
+// Add `boxes` (heaviest first) onto a pallet that may already hold boxes, using extreme points.
+// All-or-nothing: if any box doesn't fit, returns false and leaves `pallet` unchanged.
+// Used by the WES layer, because one customer order must not be split across pallets.
+bool addBoxesExtremePoints(PalletState& pallet, const std::vector<Box>& boxes);
+
 }  // namespace pal
