@@ -1,0 +1,25 @@
+# Continuous Integration: on every push and pull request, GitHub spins up fresh machines,
+# builds the C++ core and runs the tests. A failing test turns the commit/PR red.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  core:
+    # Matrix = run the same job on several machines in parallel. Linux uses libstdc++,
+    # macOS uses libc++: running both also proves our seeded randomness is portable.
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4          # clone the repo onto the runner
+      - name: Build
+        run: make -C core -j4               # -j4 = compile 4 files in parallel
+      - name: Unit + property tests
+        run: make -C core test
+      - name: Benchmark (smoke run)
+        run: ./core/build/bin/bench --seeds 5

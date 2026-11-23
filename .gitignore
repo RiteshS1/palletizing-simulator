@@ -1,0 +1,8 @@
+core/build/
+web/node_modules/
+web/dist/
+*.o
+*.d
+.DS_Store
+.vscode/
+.idea/
