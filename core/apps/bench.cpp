@@ -5,15 +5,14 @@
 //
 //   bench [--seeds 50]
 
+#include <CLI/CLI.hpp>
 #include <chrono>
 #include <cmath>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
+#include <fmt/core.h>
 #include <functional>
 
-#include "generator.hpp"
-#include "metrics.hpp"
+#include "pal/generator.hpp"
+#include "pal/metrics.hpp"
 
 using namespace pal;
 
@@ -54,15 +53,16 @@ static void record(AlgoStats& s, const Metrics& m) {
 }
 
 static void row(const char* label, const Stat& a, const Stat& b, int decimals) {
-    std::printf("  %-18s %9.*f ± %-7.*f %9.*f ± %-7.*f\n", label, decimals, a.mean, decimals,
-                a.stddev(), decimals, b.mean, decimals, b.stddev());
+    // fmt: Python-style format strings, type-safe at compile time (no printf %-mismatch bugs).
+    fmt::print("  {:<18} {:>9.{}f} ± {:<7.{}f} {:>9.{}f} ± {:<7.{}f}\n", label, a.mean, decimals,
+               a.stddev(), decimals, b.mean, decimals, b.stddev(), decimals);
 }
 
 int main(int argc, char** argv) {
     int seeds = 50;
-    for (int i = 1; i < argc; ++i) {
-        if (!std::strcmp(argv[i], "--seeds") && i + 1 < argc) seeds = std::atoi(argv[++i]);
-    }
+    CLI::App app{"Compare greedy layer vs extreme points over many random box sets."};
+    app.add_option("--seeds", seeds, "How many random box sets per size")->check(CLI::Range(1, 10000))->capture_default_str();
+    CLI11_PARSE(app, argc, argv);
 
     Packer greedy = [](const std::vector<Box>& b) { return packGreedyLayer(b); };
     Packer ep = [](const std::vector<Box>& b) { return packExtremePoints(b); };
@@ -80,14 +80,14 @@ int main(int argc, char** argv) {
             if (me.placedVolume > mg.placedVolume) ++epWinsVolume;
             else if (me.placedVolume == mg.placedVolume) ++ties;
         }
-        std::printf("\n%d boxes per pallet, %d seeds          greedy_layer        extreme_points\n", n, seeds);
+        fmt::print("\n{} boxes per pallet, {} seeds          greedy_layer        extreme_points\n", n, seeds);
         row("placed boxes (%)", g.placedPct, e.placedPct, 1);
         row("fill of max (%)", g.fill, e.fill, 1);
         row("density (%)", g.density, e.density, 1);
         row("height (mm)", g.height, e.height, 0);
         row("CoM offset (mm)", g.comOffset, e.comOffset, 0);
         row("runtime (ms)", g.runtime, e.runtime, 2);
-        std::printf("  EP places more volume on %d/%d seeds (%d ties)\n", epWinsVolume, seeds, ties);
+        fmt::print("  EP places more volume on {}/{} seeds ({} ties)\n", epWinsVolume, seeds, ties);
     }
     return 0;
 }

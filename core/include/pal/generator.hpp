@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "box.hpp"
+#include "pal/box.hpp"
 
 namespace pal {
 

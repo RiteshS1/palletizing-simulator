@@ -1,10 +1,8 @@
 # CI/CD for the whole project.
 #
-#   core ──▶ e2e ──▶ deploy (main only)
-#
-# CI  (every push and pull request): build and test the C++ engine on Linux + macOS, then build the
-#     website (C++ plans + WebAssembly + Vite) and run the Playwright end-to-end tests against it.
-# CD  (pushes to main, only if everything above passed): publish the website to GitHub Pages.
+#   core (Linux + macOS) ─┬─▶ web (engine → WASM → site → e2e) ──▶ deploy (main only)
+#   sanitizers (ASan)  ───┤
+#   ros2 (Docker)      ───┘
 name: CI/CD
 
 on:
@@ -13,48 +11,100 @@ on:
   pull_request:
   workflow_dispatch:
 
-# Only one deployment at a time; a newer push cancels an older run still in progress.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  VCPKG_ROOT: ${{ github.workspace }}/.vcpkg
+
 jobs:
   core:
-    # Matrix = the same job on several machines in parallel. Linux uses libstdc++, macOS libc++:
-    # running both also proves the seeded randomness gives identical boxes everywhere.
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
-      - name: Build
-        run: make -C core -j4
-      - name: Unit + property tests
-        run: make -C core test
-      - name: Benchmark (smoke run)
-        run: ./core/build/bin/bench --seeds 5
+      - name: Build tools
+        run: |
+          if [ "$RUNNER_OS" = Linux ]; then sudo apt-get update && sudo apt-get install -y ninja-build pkg-config;
+          else brew install ninja pkgconf || true; fi
+      - name: vcpkg (pinned to the manifest baseline)
+        run: |
+          git clone --filter=blob:none https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" checkout "$(jq -r '."builtin-baseline"' core/vcpkg.json)"
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+      - name: Cache compiled dependencies
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/vcpkg/archives
+          key: vcpkg-${{ runner.os }}-release-${{ hashFiles('core/vcpkg.json') }}
+      - name: Configure + build (CMake preset)
+        working-directory: core
+        run: cmake --preset release && cmake --build --preset release
+      - name: Unit + property tests (GoogleTest via CTest)
+        working-directory: core
+        run: ctest --preset release
+      - name: Algorithm benchmark (smoke run)
+        run: ./core/build/release/bench --seeds 5
 
-  e2e:
-    needs: core
+  sanitizers:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build pkg-config
+      - name: vcpkg
+        run: |
+          git clone --filter=blob:none https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" checkout "$(jq -r '."builtin-baseline"' core/vcpkg.json)"
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/vcpkg/archives
+          key: vcpkg-${{ runner.os }}-asan-${{ hashFiles('core/vcpkg.json') }}
+      - name: AddressSanitizer + UndefinedBehaviorSanitizer
+        working-directory: core
+        run: cmake --preset debug-asan && cmake --build --preset debug-asan && ctest --preset debug-asan
+
+  ros2:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the ROS 2 Jazzy workspace (colcon, in Docker)
+        run: scripts/ros.sh build
+      - name: ROS 2 tests (gtest + launch_testing service call)
+        run: scripts/ros.sh test
+
+  web:
+    needs: [core, sanitizers, ros2]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build pkg-config
+      - name: vcpkg
+        run: |
+          git clone --filter=blob:none https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
+          git -C "$VCPKG_ROOT" checkout "$(jq -r '."builtin-baseline"' core/vcpkg.json)"
+          "$VCPKG_ROOT/bootstrap-vcpkg.sh" -disableMetrics
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/vcpkg/archives
+          key: vcpkg-${{ runner.os }}-web-${{ hashFiles('core/vcpkg.json') }}
+      - uses: emscripten-core/setup-emsdk@v16
+        with:
+          version: 7.0.1
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - uses: emscripten-core/setup-emsdk@v16
-        with:
-          version: 7.0.1
-      - name: Install web dependencies
-        run: npm ci
+      - run: npm ci
         working-directory: web
-      - name: Install the Playwright browser
-        run: npx playwright install --with-deps chromium
+      - run: npx playwright install --with-deps chromium
         working-directory: web
-      - name: Build the site (C++ plans + WebAssembly + Vite)
+      - name: Build the site (C++ plans + WebAssembly + web build)
         run: npm run build
         working-directory: web
       - name: End-to-end tests
@@ -73,12 +123,12 @@ jobs:
           path: web/playwright-report
 
   deploy:
-    needs: e2e
+    needs: web
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
-      pages: write     # publish to GitHub Pages
-      id-token: write  # prove to Pages that this workflow is who it says it is (OIDC)
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

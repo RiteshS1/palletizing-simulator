@@ -1,0 +1,18 @@
+# Plan a pallet for a reproducible random set of cartons.
+# Request
+string algorithm "ep"      # "ep" (extreme points) or "greedy"
+uint32 box_count 40
+uint32 seed 42
+float64 min_support 0.75   # fraction of each box's base that must be supported
+---
+# Response: one entry per placed box, in the order the robot places them.
+bool success
+string message
+geometry_msgs/Pose[] place_poses      # tool pose at release, in the robot_base frame (m)
+geometry_msgs/Pose[] approach_poses   # straight above place_poses; the robot descends from here
+geometry_msgs/Vector3[] box_sizes     # m, in the pallet frame
+float64[] box_weights                 # kg
+uint32 placed
+uint32 offered
+float64 fill_ratio                    # placed volume / pallet volume
+float64 com_offset_m                  # center of mass distance from the pallet centre

@@ -1,0 +1,11 @@
+# Static analysis: catches bugs and modernizes code. Run via `clang-tidy -p build/release <file>`.
+Checks: >
+  bugprone-*,
+  performance-*,
+  modernize-use-nullptr,
+  modernize-use-override,
+  readability-braces-around-statements,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions
+WarningsAsErrors: ''
+HeaderFilterRegex: 'include/pal/.*'

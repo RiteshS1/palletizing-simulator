@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-#include "pallet_state.hpp"
+#include "pal/pallet_state.hpp"
 
 namespace pal {
 

@@ -1,4 +1,4 @@
-#include "wes.hpp"
+#include "pal/wes.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -7,8 +7,8 @@
 #include <queue>
 #include <unordered_map>
 
-#include "generator.hpp"
-#include "random.hpp"
+#include "pal/generator.hpp"
+#include "pal/random.hpp"
 
 namespace pal {
 

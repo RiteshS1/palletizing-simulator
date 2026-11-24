@@ -1,8 +1,8 @@
-#include "generator.hpp"
+#include "pal/generator.hpp"
 
 #include <cmath>
 
-#include "random.hpp"
+#include "pal/random.hpp"
 
 namespace pal {
 

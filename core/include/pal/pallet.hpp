@@ -4,7 +4,7 @@
 // Pallet frame: origin at the back-left corner of the pallet's TOP deck (z = 0 is where the
 // first layer of boxes sits). x runs along the long side, y along the short side, z points up.
 
-#include "geometry.hpp"
+#include "pal/geometry.hpp"
 
 namespace pal {
 

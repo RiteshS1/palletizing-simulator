@@ -1,44 +1,33 @@
 // palletize: generate a box set, pack it, print the plan as JSON.
 //
-//   palletize --algo ep --n 40 --seed 42 --out plan.json
+//   palletize --algo ep --boxes 40 --seed 42 --out plan.json
 //
-// JSON goes to stdout (or --out); a one-line summary goes to stderr, so piping the JSON into
+// JSON goes to stdout (or --out); the one-line summary goes to stderr, so piping the JSON into
 // another program never mixes in human-readable text.
 
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
+#include <CLI/CLI.hpp>
+#include <fmt/core.h>
 #include <fstream>
 
-#include "api.hpp"
-
-using namespace pal;
-
-static void usage() {
-    std::fprintf(stderr,
-                 "usage: palletize [--algo greedy|ep] [--n 40] [--seed 42] [--support 0.75]\n"
-                 "                 [--restarts 8] [--out file.json]\n");
-    std::exit(2);
-}
+#include "pal/api.hpp"
 
 int main(int argc, char** argv) {
-    PackRequest req;
+    pal::PackRequest req;
     std::string outPath;
-    for (int i = 1; i < argc; ++i) {
-        auto next = [&]() -> const char* { if (i + 1 >= argc) usage(); return argv[++i]; };
-        if (!std::strcmp(argv[i], "--algo")) req.algo = next();
-        else if (!std::strcmp(argv[i], "--n")) req.n = std::atoi(next());
-        else if (!std::strcmp(argv[i], "--seed")) req.seed = uint32_t(std::strtoul(next(), nullptr, 10));
-        else if (!std::strcmp(argv[i], "--support")) req.minSupport = std::atof(next());
-        else if (!std::strcmp(argv[i], "--restarts")) req.restarts = std::atoi(next());
-        else if (!std::strcmp(argv[i], "--out")) outPath = next();
-        else usage();
-    }
-    if (req.algo != "greedy" && req.algo != "ep") usage();
 
-    RunOutput out = runPack(req);
-    if (outPath.empty()) std::printf("%s\n", out.json.c_str());
+    // CLI11: declarative options with validation and auto-generated --help.
+    CLI::App app{"Pack a random set of cartons onto a pallet and print the plan as JSON."};
+    app.add_option("--algo", req.algo, "Packing algorithm")->check(CLI::IsMember({"greedy", "ep"}))->capture_default_str();
+    app.add_option("-n,--boxes", req.n, "Number of boxes")->check(CLI::Range(1, 1000))->capture_default_str();
+    app.add_option("--seed", req.seed, "Random seed (same seed, same boxes)")->capture_default_str();
+    app.add_option("--support", req.minSupport, "Minimum supported fraction of a box's base")->check(CLI::Range(0.0, 1.0))->capture_default_str();
+    app.add_option("--restarts", req.restarts, "Extra randomized runs for extreme points")->check(CLI::Range(0, 200))->capture_default_str();
+    app.add_option("-o,--out", outPath, "Write the JSON to this file instead of stdout");
+    CLI11_PARSE(app, argc, argv);
+
+    const pal::RunOutput out = pal::runPack(req);
+    if (outPath.empty()) fmt::print("{}\n", out.json);
     else std::ofstream(outPath) << out.json << '\n';
-    std::fprintf(stderr, "%s\n", out.summary.c_str());
+    fmt::print(stderr, "{}\n", out.summary);
     return 0;
 }

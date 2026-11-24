@@ -1,0 +1,7 @@
+**/build
+**/node_modules
+web
+docs
+.git
+.github
+**/.env*

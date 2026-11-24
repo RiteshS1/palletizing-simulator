@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-#include "packer.hpp"
+#include "pal/packer.hpp"
 
 namespace pal {
 

@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<!-- Lets colcon (the ROS 2 build tool) build this plain-CMake library inside a ROS workspace. -->
+<package format="3">
+  <name>palletizer_core</name>
+  <version>2.0.0</version>
+  <description>Mixed-case palletizing planner: geometry, stacking rules, greedy and extreme-points packers, WES.</description>
+  <maintainer email="noreply@example.com">Palletizer maintainers</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>cmake</buildtool_depend>
+  <depend>fmt</depend>
+  <depend>nlohmann-json-dev</depend>
+  <depend>eigen</depend>
+  <export>
+    <build_type>cmake</build_type>
+  </export>
+</package>

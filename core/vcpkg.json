@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "palletizer-core",
+  "version": "2.0.0",
+  "description": "Mixed-case palletizing planner (C++20)",
+  "builtin-baseline": "944dee83774536dd280cf459f41989584b9ef86a",
+  "dependencies": ["fmt", "nlohmann-json", "eigen3"],
+  "features": {
+    "tools": {
+      "description": "Command-line apps, tests and benchmarks (native builds only)",
+      "dependencies": ["cli11", "gtest", "benchmark"]
+    }
+  }
+}

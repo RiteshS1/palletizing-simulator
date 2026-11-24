@@ -4,8 +4,8 @@
 
 #include <vector>
 
-#include "box.hpp"
-#include "pallet.hpp"
+#include "pal/box.hpp"
+#include "pal/pallet.hpp"
 
 namespace pal {
 

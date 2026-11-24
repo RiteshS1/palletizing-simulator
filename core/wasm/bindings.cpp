@@ -10,7 +10,7 @@
 
 #include <emscripten/bind.h>
 
-#include "api.hpp"
+#include "pal/api.hpp"
 
 namespace {
 

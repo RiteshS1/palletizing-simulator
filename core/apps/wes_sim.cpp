@@ -1,32 +1,27 @@
 // wes_sim: simulate a shift of customer orders flowing onto pallets.
 //
-//   wes_sim --orders 24 --seed 7 [--policy waves|order] [--out wes.json]
+//   wes_sim --orders 24 --seed 7 --policy waves --out wes.json
 
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
+#include <CLI/CLI.hpp>
+#include <fmt/core.h>
 #include <fstream>
 
-#include "api.hpp"
-
-using namespace pal;
+#include "pal/api.hpp"
 
 int main(int argc, char** argv) {
-    WesRequest req;
+    pal::WesRequest req;
     std::string outPath;
-    for (int i = 1; i < argc; ++i) {
-        if (!std::strcmp(argv[i], "--orders") && i + 1 < argc) req.orders = std::atoi(argv[++i]);
-        else if (!std::strcmp(argv[i], "--seed") && i + 1 < argc) req.seed = uint32_t(std::strtoul(argv[++i], nullptr, 10));
-        else if (!std::strcmp(argv[i], "--policy") && i + 1 < argc) req.policy = argv[++i];
-        else if (!std::strcmp(argv[i], "--out") && i + 1 < argc) outPath = argv[++i];
-        else {
-            std::fprintf(stderr, "usage: wes_sim [--orders 24] [--seed 7] [--policy waves|order] [--out wes.json]\n");
-            return 2;
-        }
-    }
-    RunOutput out = runWesSim(req);
-    if (outPath.empty()) std::printf("%s\n", out.json.c_str());
+
+    CLI::App app{"Simulate a shift of orders going onto pallets (warehouse execution system)."};
+    app.add_option("--orders", req.orders, "Number of customer orders")->check(CLI::Range(1, 500))->capture_default_str();
+    app.add_option("--seed", req.seed, "Random seed")->capture_default_str();
+    app.add_option("--policy", req.policy, "waves (batched) or order (one by one)")->check(CLI::IsMember({"waves", "order"}))->capture_default_str();
+    app.add_option("-o,--out", outPath, "Write the JSON to this file instead of stdout");
+    CLI11_PARSE(app, argc, argv);
+
+    const pal::RunOutput out = pal::runWesSim(req);
+    if (outPath.empty()) fmt::print("{}\n", out.json);
     else std::ofstream(outPath) << out.json << '\n';
-    std::fprintf(stderr, "%s\n", out.summary.c_str());
+    fmt::print(stderr, "{}\n", out.summary);
     return 0;
 }

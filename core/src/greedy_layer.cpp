@@ -14,7 +14,7 @@
 
 #include <algorithm>
 
-#include "packer.hpp"
+#include "pal/packer.hpp"
 
 namespace pal {
 

@@ -1,82 +1,77 @@
-#include "plan_io.hpp"
+#include "pal/plan_io.hpp"
 
-#include "json.hpp"
+#include <cmath>
 
 namespace pal {
 
-// Output shape (all lengths in mm, pallet frame, z up):
-// {
-//   "algorithm": "...", "seed": 42,
-//   "pallet":  {length, width, maxHeight, maxLoad},
-//   "rules":   {minSupportRatio, loadFactor, requireCenterSupported},
-//   "boxes":   [{id, w, d, h, weight}, ...]                       // everything offered
-//   "placements": [{step, id, x, y, z, sx, sy, sz, weight, rotated}, ...]  // in robot order
-//   "unplaced": [id, ...],
-//   "metrics": {...}
-// }
-std::string planToJson(const PackResult& r, const Metrics& m, const std::vector<Box>& offered,
-                       uint32_t seed) {
+namespace {
+
+// Micrometre precision is plenty for poses and keeps the JSON readable.
+double round6(double v) { return std::round(v * 1e6) / 1e6; }
+
+}  // namespace
+
+Json poseToJson(const Pose& p) {
+    const auto& q = p.orientation;
+    return Json{
+        {"position", {round6(p.position.x()), round6(p.position.y()), round6(p.position.z())}},
+        {"orientation", {round6(q.x()), round6(q.y()), round6(q.z()), round6(q.w())}},
+    };
+}
+
+// Output shape (box lengths in mm in the pallet frame; poses in metres in the robot base frame):
+// { algorithm, seed, pallet, rules, robotCell, boxes[], placements[], unplaced[], metrics }
+Json planToJson(const PackResult& r, const Metrics& m, const std::vector<Box>& offered, uint32_t seed,
+                const RobotCell& cell) {
     const PalletSpec& s = r.pallet.spec();
     const Rules& rules = r.pallet.rules();
-    JsonWriter j;
-    j.beginObject();
-    j.key("algorithm").value(r.algorithm);
-    j.key("seed").value(seed);
 
-    j.key("pallet").beginObject()
-        .key("length").value(s.length)
-        .key("width").value(s.width)
-        .key("maxHeight").value(s.maxHeight)
-        .key("maxLoad").value(s.maxLoad)
-        .endObject();
+    Json j;
+    j["algorithm"] = r.algorithm;
+    j["seed"] = seed;
+    j["pallet"] = {{"length", s.length}, {"width", s.width}, {"maxHeight", s.maxHeight}, {"maxLoad", s.maxLoad}};
+    j["rules"] = {{"minSupportRatio", rules.minSupportRatio},
+                  {"loadFactor", rules.loadFactor},
+                  {"requireCenterSupported", rules.requireCenterSupported}};
+    j["robotCell"] = {{"frame", "robot_base"},
+                      {"units", "m"},
+                      {"palletPose", poseToJson(toPose(cell.basePallet))},
+                      {"approachHeight", cell.approachHeightM}};
 
-    j.key("rules").beginObject()
-        .key("minSupportRatio").value(rules.minSupportRatio)
-        .key("loadFactor").value(rules.loadFactor)
-        .key("requireCenterSupported").value(rules.requireCenterSupported)
-        .endObject();
-
-    j.key("boxes").beginArray();
+    Json boxes = Json::array();
     for (const Box& b : offered) {
-        j.beginObject().key("id").value(b.id).key("w").value(b.w).key("d").value(b.d)
-            .key("h").value(b.h).key("weight").value(b.weight).endObject();
+        boxes.push_back({{"id", b.id}, {"w", b.w}, {"d", b.d}, {"h", b.h}, {"weight", b.weight}});
     }
-    j.endArray();
+    j["boxes"] = std::move(boxes);
 
-    j.key("placements").beginArray();
+    Json placements = Json::array();
     int step = 0;
     for (const Placement& p : r.pallet.placements()) {
-        AABB a = p.aabb();
-        j.beginObject()
-            .key("step").value(step++)
-            .key("id").value(p.box.id)
-            .key("x").value(a.min.x).key("y").value(a.min.y).key("z").value(a.min.z)
-            .key("sx").value(a.sizeX()).key("sy").value(a.sizeY()).key("sz").value(a.sizeZ())
-            .key("weight").value(p.box.weight)
-            .key("rotated").value(p.rotated)
-            .endObject();
+        const AABB a = p.aabb();
+        const PlacePoses poses = placePoses(cell, p);
+        placements.push_back({
+            {"step", step++},
+            {"id", p.box.id},
+            {"x", a.min.x}, {"y", a.min.y}, {"z", a.min.z},
+            {"sx", a.sizeX()}, {"sy", a.sizeY()}, {"sz", a.sizeZ()},
+            {"weight", p.box.weight},
+            {"rotated", p.rotated},
+            {"placePose", poseToJson(poses.place)},
+            {"approachPose", poseToJson(poses.approach)},
+        });
     }
-    j.endArray();
+    j["placements"] = std::move(placements);
 
-    j.key("unplaced").beginArray();
-    for (const Box& b : r.unplaced) j.value(b.id);
-    j.endArray();
+    Json unplaced = Json::array();
+    for (const Box& b : r.unplaced) unplaced.push_back(b.id);
+    j["unplaced"] = std::move(unplaced);
 
-    j.key("metrics").beginObject()
-        .key("offered").value(m.offered)
-        .key("placed").value(m.placed)
-        .key("placedVolume").value(m.placedVolume)
-        .key("density").value(m.density)
-        .key("fillOfMax").value(m.fillOfMax)
-        .key("height").value(m.height)
-        .key("totalWeight").value(m.totalWeight)
-        .key("comOffset").value(m.comOffset)
-        .key("comHeight").value(m.comHeight)
-        .key("runtimeMs").value(m.runtimeMs)
-        .endObject();
-
-    j.endObject();
-    return j.str();
+    j["metrics"] = {{"offered", m.offered},       {"placed", m.placed},
+                    {"placedVolume", m.placedVolume}, {"density", m.density},
+                    {"fillOfMax", m.fillOfMax},   {"height", m.height},
+                    {"totalWeight", m.totalWeight}, {"comOffset", m.comOffset},
+                    {"comHeight", m.comHeight},   {"runtimeMs", m.runtimeMs}};
+    return j;
 }
 
 }  // namespace pal

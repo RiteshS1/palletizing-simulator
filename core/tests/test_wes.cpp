@@ -1,20 +1,23 @@
 // Invariants of the order-to-pallet layer, checked for both policies.
+#include <gtest/gtest.h>
+
 #include <algorithm>
 #include <set>
 
-#include "metrics.hpp"
-#include "testing.hpp"
-#include "wes.hpp"
+#include "pal/metrics.hpp"
+#include "pal/wes.hpp"
 
 using namespace pal;
 
-static WesConfig policy(WesPolicy p) {
+namespace {
+WesConfig policy(WesPolicy p) {
     WesConfig c;
     c.policy = p;
     return c;
 }
+}  // namespace
 
-TEST(every_order_handled_once_on_one_pallet) {
+TEST(Wes, EveryOrderHandledOnceOnOnePallet) {
     for (WesPolicy p : {WesPolicy::OrderByOrder, WesPolicy::Waves}) {
         for (uint32_t seed = 1; seed <= 8; ++seed) {
             auto orders = generateOrders(20, seed);
@@ -26,31 +29,31 @@ TEST(every_order_handled_once_on_one_pallet) {
                 if (o.rejected) continue;
                 int onPallet = 0;  // every box of the order is on the SAME pallet
                 for (const StepRecord& s : r.pallets[o.pallet].steps) onPallet += s.orderId == o.order.id;
-                CHECK(onPallet == int(o.order.boxes.size()));
+                EXPECT_TRUE(onPallet == int(o.order.boxes.size()));
                 steps += onPallet;
             }
-            CHECK(processed.size() == orders.size());  // a permutation: nobody handled twice
-            CHECK(steps == r.totalSteps);              // and no box from nowhere
+            EXPECT_TRUE(processed.size() == orders.size());  // a permutation: nobody handled twice
+            EXPECT_TRUE(steps == r.totalSteps);              // and no box from nowhere
         }
     }
 }
 
-TEST(pallets_have_one_destination_and_valid_stacks) {
+TEST(Wes, PalletsHaveOneDestinationAndValidStacks) {
     for (WesPolicy p : {WesPolicy::OrderByOrder, WesPolicy::Waves}) {
         auto orders = generateOrders(30, 3);
         WesResult r = runWes(orders, policy(p));
         for (const PalletRecord& pr : r.pallets) {
             PalletState replay(pr.state.spec(), pr.state.rules());
             for (const StepRecord& s : pr.steps) {
-                CHECK(orders[s.orderId].destination == pr.destination);
-                CHECK(replay.tryPlace(s.placement).ok());  // the robot's order is physically valid
+                EXPECT_TRUE(orders[s.orderId].destination == pr.destination);
+                EXPECT_TRUE(replay.tryPlace(s.placement).ok());  // the robot's order is physically valid
             }
-            CHECK(!pr.open);  // everything shipped by the end
+            EXPECT_TRUE(!pr.open);  // everything shipped by the end
         }
     }
 }
 
-TEST(station_limit_is_respected) {
+TEST(Wes, StationLimitIsRespected) {
     WesConfig cfg = policy(WesPolicy::OrderByOrder);
     cfg.stations = 3;
     WesResult r = runWes(generateOrders(40, 11), cfg);
@@ -59,11 +62,11 @@ TEST(station_limit_is_respected) {
         for (const PalletRecord& p : r.pallets) {
             if (!p.steps.empty() && p.steps.front().step <= step && step < p.closedAfterStep) ++open;
         }
-        CHECK(open <= cfg.stations);
+        EXPECT_TRUE(open <= cfg.stations);
     }
 }
 
-TEST(queue_order_is_priority_then_deadline) {
+TEST(Wes, QueueOrderIsPriorityThenDeadline) {
     auto orders = generateOrders(15, 5);
     for (Order& o : orders) o.release = 0;  // everyone waiting at once: pure queue order
     WesResult r = runWes(orders, policy(WesPolicy::OrderByOrder));
@@ -72,11 +75,11 @@ TEST(queue_order_is_priority_then_deadline) {
     std::sort(seq.begin(), seq.end(), [](auto a, auto b) { return a->processed < b->processed; });
     for (size_t i = 1; i < seq.size(); ++i) {
         const Order &a = seq[i - 1]->order, &b = seq[i]->order;
-        CHECK(a.priority < b.priority || (a.priority == b.priority && a.deadline <= b.deadline));
+        EXPECT_TRUE(a.priority < b.priority || (a.priority == b.priority && a.deadline <= b.deadline));
     }
 }
 
-TEST(waves_fill_pallets_better_than_order_by_order) {
+TEST(Wes, WavesFillPalletsBetter) {
     double fillOrder = 0, fillWaves = 0;
     int nOrder = 0, nWaves = 0;
     for (uint32_t seed = 1; seed <= 6; ++seed) {
@@ -90,13 +93,13 @@ TEST(waves_fill_pallets_better_than_order_by_order) {
             ++nWaves;
         }
     }
-    CHECK(nWaves < nOrder);                          // fewer pallets...
-    CHECK(fillWaves / nWaves > fillOrder / nOrder);  // ...each one fuller
+    EXPECT_TRUE(nWaves < nOrder);                          // fewer pallets...
+    EXPECT_TRUE(fillWaves / nWaves > fillOrder / nOrder);  // ...each one fuller
 }
 
-TEST(wes_is_deterministic) {
+TEST(Wes, Deterministic) {
     auto orders = generateOrders(20, 9);
     WesResult a = runWes(orders), b = runWes(orders);
-    CHECK(a.totalSteps == b.totalSteps && a.pallets.size() == b.pallets.size());
-    CHECK(a.makespan == b.makespan);
+    EXPECT_TRUE(a.totalSteps == b.totalSteps && a.pallets.size() == b.pallets.size());
+    EXPECT_TRUE(a.makespan == b.makespan);
 }

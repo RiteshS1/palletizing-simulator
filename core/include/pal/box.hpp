@@ -1,7 +1,7 @@
 #pragma once
 // A carton (Box) and where it ends up on the pallet (Placement).
 
-#include "geometry.hpp"
+#include "pal/geometry.hpp"
 
 namespace pal {
 

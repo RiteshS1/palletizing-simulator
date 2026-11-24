@@ -1,0 +1,7 @@
+# Google style with a wider line: the house style for this repo.
+BasedOnStyle: Google
+IndentWidth: 4
+ColumnLimit: 110
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: WithoutElse
+IncludeBlocks: Preserve

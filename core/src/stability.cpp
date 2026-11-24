@@ -1,4 +1,4 @@
-#include "stability.hpp"
+#include "pal/stability.hpp"
 
 #include <algorithm>
 

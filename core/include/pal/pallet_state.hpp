@@ -4,7 +4,7 @@
 
 #include <vector>
 
-#include "stability.hpp"
+#include "pal/stability.hpp"
 
 namespace pal {
 

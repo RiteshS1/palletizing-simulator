@@ -12,23 +12,19 @@ A 3D palletizing simulator built as a **learning project** (robotics + data stru
 
 ## Commands
 ```bash
-make -C core            # build library, apps and tests
-make -C core test       # run unit tests (must pass before a phase is called done)
-make -C core bench      # greedy vs extreme-points over 50 seeds
-make -C core run        # write build/plan_greedy.json and build/plan_ep.json (seed 42)
-make -C core clean
-make -C core plans      # write the viewer's data into web/public/data/
-make -C core wasm       # compile the engine to WebAssembly (needs Emscripten em++)
-./core/build/bin/palletize --algo greedy|ep --n 40 --seed 42 [--out plan.json]
-./core/build/bin/wes_sim --orders 24 --seed 7 [--policy waves|order] [--out wes.json]
+# C++ engine (CMake presets + vcpkg; export VCPKG_ROOT=~/vcpkg)
+cd core
+cmake --preset release && cmake --build --preset release && ctest --preset release
+cmake --preset debug-asan && cmake --build --preset debug-asan && ctest --preset debug-asan  # Linux (ASan hangs on macOS 26)
+./build/release/bench --seeds 50        # greedy vs extreme points
+./build/release/micro_bench             # Google Benchmark micro-benchmarks
+./build/release/palletize --algo ep -n 40 --seed 42 [-o plan.json]
+./build/release/wes_sim --orders 24 --seed 7 [--policy waves|order]
 
-cd web && npm install
-npm run dev             # regenerates data + WASM, then starts Vite on :5173
-npm run build           # production build into web/dist
-npm run test:e2e        # Playwright end-to-end tests (desktop + mobile) against the build
+scripts/build-engine.sh                 # plans + WASM into web/public (needs Emscripten for WASM)
+scripts/ros.sh build|test|run|call      # ROS 2 Jazzy workspace in Docker (colcon)
 ```
-CI/CD: `.github/workflows/ci.yml` runs core tests (Ubuntu + macOS), then e2e, then deploys
-`web/dist` to GitHub Pages on pushes to main.
+CI/CD: `.github/workflows/ci.yml` (core on Linux + macOS, sanitizers, ROS 2 in Docker, web e2e, deploy).
 
 ## Conventions
 - **Units**: lengths in integer **millimetres** (`int`), weight in **kg** (`double`).
@@ -38,9 +34,12 @@ CI/CD: `.github/workflows/ci.yml` runs core tests (Ubuntu + macOS), then e2e, th
 - **Boxes stay upright**: only yaw rotation (swap w and d). Never tip a box onto its side.
 - **AABBs are half-open** `[min, max)`: touching faces do NOT count as overlap.
 - **Determinism**: all randomness comes from a seeded `std::mt19937`. Same seed, same output.
-- No third-party C++ dependencies. Standard library only, plain Makefile (no CMake).
-- Namespace `pal`. Headers in `core/include/`, implementations in `core/src/`,
-  executables in `core/apps/`, tests in `core/tests/` (use the `TEST`/`CHECK` macros in `testing.hpp`).
+- C++20, CMake + CMakePresets, dependencies from vcpkg (`core/vcpkg.json`): fmt, nlohmann/json,
+  Eigen (poses only; packing stays integer), CLI11, GoogleTest, Google Benchmark. No Boost.
+- Namespace `pal`. Public headers in `core/include/pal/`, implementations in `core/src/`, apps in
+  `core/apps/`, GoogleTest tests in `core/tests/`, micro-benchmarks in `core/bench/`.
+- ROS 2 packages in `ros2/` (`palletizer_interfaces`, `palletizer_ros`); `core/` is also a colcon
+  package (`package.xml`, build_type cmake) and installs `pal::core` for `find_package`.
 - Comment the *why* on algorithmic code, not the obvious *what*.
 
 ## Content rules

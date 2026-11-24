@@ -1,90 +1,87 @@
-// Property tests: instead of one known answer, check rules that must hold for EVERY plan,
-// across hundreds of random box sets.
-#include <algorithm>
+// Property tests: rules that must hold for EVERY plan, swept over many random box sets with
+// GoogleTest's parameterized tests (one test case per seed, so a failure names its seed).
+#include <gtest/gtest.h>
+
 #include <set>
 
-#include "generator.hpp"
-#include "json.hpp"
-#include "metrics.hpp"
-#include "testing.hpp"
+#include "pal/generator.hpp"
+#include "pal/metrics.hpp"
+#include "pal/plan_io.hpp"
 
 using namespace pal;
 
-// Verify a plan with checks that do NOT reuse the packer's own logic where possible
-// (an independent "test oracle"), so a bug in the packer can't hide itself.
-static bool planIsValid(const PackResult& r, const std::vector<Box>& offered) {
-    const auto& placed = r.pallet.placements();
-    bool ok = true;
+namespace {
 
-    // 1. Every offered box appears exactly once: either placed or unplaced.
-    std::multiset<int> ids;
+// An independent "test oracle": checks that do not reuse the packer's logic where possible.
+void expectValidPlan(const PackResult& r, const std::vector<Box>& offered) {
+    const auto& placed = r.pallet.placements();
+
+    std::multiset<int> ids, expected;  // every offered box exactly once: placed or unplaced
     for (const Placement& p : placed) ids.insert(p.box.id);
     for (const Box& b : r.unplaced) ids.insert(b.id);
-    std::multiset<int> expected;
     for (const Box& b : offered) expected.insert(b.id);
-    ok = ok && ids == expected;
+    EXPECT_EQ(ids, expected);
 
-    // 2. Brute-force pairwise: no two boxes intersect, all inside the pallet. O(n^2), fine in tests.
-    AABB space = r.pallet.spec().usableSpace();
+    const AABB space = r.pallet.spec().usableSpace();  // brute force O(n^2): no overlaps, all inside
     for (size_t i = 0; i < placed.size(); ++i) {
-        ok = ok && contains(space, placed[i].aabb());
+        EXPECT_TRUE(contains(space, placed[i].aabb()));
         for (size_t j = i + 1; j < placed.size(); ++j) {
-            ok = ok && !intersects(placed[i].aabb(), placed[j].aabb());
+            EXPECT_FALSE(intersects(placed[i].aabb(), placed[j].aabb())) << "boxes " << i << " and " << j;
         }
     }
 
-    // 3. Replay the plan step by step on an empty pallet: every step must pass every rule
-    //    at the moment it is placed (this is what the robot would experience).
-    PalletState replay(r.pallet.spec(), r.pallet.rules());
-    for (const Placement& p : placed) ok = ok && replay.tryPlace(p).ok();
-    return ok;
+    PalletState replay(r.pallet.spec(), r.pallet.rules());  // the robot's order is valid step by step
+    for (const Placement& p : placed) EXPECT_TRUE(replay.tryPlace(p).ok());
 }
 
-TEST(greedy_plans_are_valid_for_200_seeds) {
-    int bad = 0;
-    for (uint32_t seed = 1; seed <= 200; ++seed) {
-        auto boxes = generateBoxes(50, seed);
-        if (!planIsValid(packGreedyLayer(boxes), boxes)) ++bad;
-    }
-    CHECK(bad == 0);
-}
+class GreedySeeds : public ::testing::TestWithParam<uint32_t> {};
+class ExtremePointSeeds : public ::testing::TestWithParam<uint32_t> {};
 
-TEST(ep_plans_are_valid_for_100_seeds) {
-    int bad = 0;
-    for (uint32_t seed = 1; seed <= 100; ++seed) {
-        auto boxes = generateBoxes(50, seed);
-        if (!planIsValid(packExtremePoints(boxes), boxes)) ++bad;
-    }
-    CHECK(bad == 0);
-}
+}  // namespace
 
-TEST(packers_are_deterministic) {
-    auto boxes = generateBoxes(40, 123);
-    for (int algo = 0; algo < 2; ++algo) {
-        PackResult a = algo ? packExtremePoints(boxes) : packGreedyLayer(boxes);
-        PackResult b = algo ? packExtremePoints(boxes) : packGreedyLayer(boxes);
-        const auto &pa = a.pallet.placements(), &pb = b.pallet.placements();
-        bool same = pa.size() == pb.size();
-        for (size_t i = 0; same && i < pa.size(); ++i) {
-            same = pa[i].box.id == pb[i].box.id && pa[i].pos == pb[i].pos && pa[i].rotated == pb[i].rotated;
+TEST_P(GreedySeeds, PlanIsValid) {
+    const auto boxes = generateBoxes(50, GetParam());
+    expectValidPlan(packGreedyLayer(boxes), boxes);
+}
+INSTANTIATE_TEST_SUITE_P(Property, GreedySeeds, ::testing::Range(1u, 201u));
+
+TEST_P(ExtremePointSeeds, PlanIsValid) {
+    const auto boxes = generateBoxes(50, GetParam());
+    expectValidPlan(packExtremePoints(boxes), boxes);
+}
+INSTANTIATE_TEST_SUITE_P(Property, ExtremePointSeeds, ::testing::Range(1u, 101u));
+
+TEST(Packers, Deterministic) {
+    const auto boxes = generateBoxes(40, 123);
+    for (bool ep : {false, true}) {
+        const PackResult a = ep ? packExtremePoints(boxes) : packGreedyLayer(boxes);
+        const PackResult b = ep ? packExtremePoints(boxes) : packGreedyLayer(boxes);
+        ASSERT_EQ(a.pallet.placements().size(), b.pallet.placements().size());
+        for (size_t i = 0; i < a.pallet.placements().size(); ++i) {
+            const auto &pa = a.pallet.placements()[i], &pb = b.pallet.placements()[i];
+            EXPECT_EQ(pa.box.id, pb.box.id);
+            EXPECT_EQ(pa.pos, pb.pos);
+            EXPECT_EQ(pa.rotated, pb.rotated);
         }
-        CHECK(same);
     }
 }
 
-TEST(ep_beats_greedy_on_average) {
+TEST(Packers, ExtremePointsBeatsGreedyOnAverage) {
     int64_t greedyVol = 0, epVol = 0;
     for (uint32_t seed = 1; seed <= 30; ++seed) {
-        auto boxes = generateBoxes(70, seed);  // more than fits: who loads more?
+        const auto boxes = generateBoxes(70, seed);  // more than fits: who loads more?
         greedyVol += computeMetrics(packGreedyLayer(boxes), 0).placedVolume;
         epVol += computeMetrics(packExtremePoints(boxes), 0).placedVolume;
     }
-    CHECK(epVol > greedyVol);
+    EXPECT_GT(epVol, greedyVol);
 }
 
-TEST(json_writer_commas_and_nesting) {
-    JsonWriter j;
-    j.beginObject().key("a").value(1).key("b").beginArray().value(2).value(3.5).endArray()
-        .key("c").beginObject().endObject().key("s").value("q\"x").endObject();
-    CHECK(j.str() == R"({"a":1,"b":[2,3.5],"c":{},"s":"q\"x"})");
+TEST(PlanJson, HasPlanAndPoses) {
+    const auto boxes = generateBoxes(10, 3);
+    const PackResult r = packExtremePoints(boxes);
+    const Json j = planToJson(r, computeMetrics(r, 0), boxes, 3);
+    EXPECT_EQ(j["algorithm"], "extreme_points");
+    ASSERT_EQ(j["placements"].size(), r.pallet.placements().size());
+    EXPECT_EQ(j["placements"][0]["placePose"]["orientation"].size(), 4u);  // quaternion x, y, z, w
+    EXPECT_EQ(j.begin().key(), "algorithm");  // ordered_json keeps insertion order
 }

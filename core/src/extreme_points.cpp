@@ -13,8 +13,8 @@
 #include <set>
 #include <tuple>
 
-#include "packer.hpp"
-#include "random.hpp"
+#include "pal/packer.hpp"
+#include "pal/random.hpp"
 
 namespace pal {
 

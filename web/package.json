@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "data": "make -C ../core plans && (command -v em++ >/dev/null 2>&1 && make -C ../core wasm || echo 'em++ not found: skipping the WebAssembly build')",
+    "data": "bash ../scripts/build-engine.sh",
     "predev": "npm run data",
     "dev": "vite",
     "prebuild": "npm run data",
