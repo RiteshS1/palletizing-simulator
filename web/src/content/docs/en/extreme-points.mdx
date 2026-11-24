@@ -1,0 +1,45 @@
+# Extreme points
+
+The smarter heuristic searches the spots that matter instead of committing to rows.
+
+## The idea
+
+After placing a carton, the useful spots for the next one are the **corners it creates**: to its
+right, behind it, and on top. Each corner is also **projected**, slid back along the other axes until
+it hits a wall or a carton, so candidates sit snug against the stack. Points that end up inside a
+carton are removed. The live model shows these candidates as blue dots, with the chosen one in orange.
+
+## Choosing a spot
+
+For each carton, try every extreme point × both orientations, drop the invalid ones with the stacking
+rules, and score the rest with a tuple compared like words in a dictionary:
+
+1. **lowest z**: fill from the bottom up, keeping the center of mass low;
+2. **most contact area**: snug against walls and neighbours, fewer gaps;
+3. nearest the back, then the left.
+
+"**Generate candidates → filter by constraints → rank by score**" is how most practical robotics
+planners work, from grasp selection to placement.
+
+## Multi-start
+
+The whole plan runs 12 times with different carton orders (heavy-first, by volume, by base area, by
+height, plus 8 heavy-first orders with seeded random noise) and keeps the best. One bad early decision
+can ruin a greedy run; a reshuffled order often avoids it. The noise is seeded, so results stay reproducible.
+
+## Data structures
+
+- `std::set` (a red-black tree) holds the points: O(log n) inserts, duplicates removed, and a fixed
+  iteration order. A hash set would be O(1) but its order depends on the library, which could break ties
+  differently on different platforms.
+- The engine exports each step's candidate list, which is how the viewer can show the algorithm's "thinking".
+
+## Complexity
+
+About n points × 2 orientations × an O(n) rule check, for each of n cartons: **O(n³)** per run,
+times 12 runs. About 3 ms for 40 cartons natively.
+
+## Results
+
+On 50 seeds it places **90%** of cartons vs greedy's 55%, fills 64% of the pallet vs 37%, and keeps the
+center of mass 73 mm from the centre vs 193 mm. It places more volume on **50 of 50** seeds.

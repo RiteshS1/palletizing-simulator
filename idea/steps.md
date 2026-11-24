@@ -62,3 +62,22 @@ Tick the box when a phase is done.
 | CI | GitHub Actions: build + test on every push/PR (`.github/workflows/ci.yml`) | Phase 5 (done) |
 | End-to-end (e2e) | Playwright (`web/e2e/`): desktop + mobile, incl. WASM == CLI check | Phase 6–8 (done) |
 | CD | Same workflow deploys the viewer to GitHub Pages after all tests pass on main | Phase 6–8 (done) |
+
+## v2: the learning platform (Phases 9–16)
+
+- [x] **Phase 9: Industry-standard C++ toolchain**: CMake + presets, vcpkg, GoogleTest (330 cases),
+  Google Benchmark, fmt, nlohmann/json, CLI11, Eigen robot poses, sanitizers, clang-format/tidy
+- [x] **Phase 10: ROS 2 package**: `/plan_pallet` service, MarkerArray, static TF, launch file,
+  gtest + launch_testing, Jazzy Docker image
+- [x] **Phase 11: Web foundation**: Next.js 16, TypeScript, Tailwind 4, next-intl (en + ja, browser
+  language detection), design tokens, fonts, MDX
+- [x] **Phase 12: Realistic 3D + simulator**: React Three Fiber, procedural cardboard/wood/labels,
+  HDR lighting, soft shadows, ambient occlusion, vacuum gripper, overlays (CoM, extreme points,
+  support polygon), four simulator modes, WASM in a Web Worker
+- [x] **Phase 13: Landing page**: scroll-driven 3D hero (GSAP ScrollTrigger + Lenis), animated
+  sections, Unsplash photography, stack marquee, pointer-tilt cards
+- [x] **Phase 14: Documentation dashboard**: 19 chapters × 2 languages, sidebar, live 3D island per page
+- [x] **Phase 15: AI assistant**: BM25 retrieval over docs + code, Groq → Gemini failover, BotID,
+  rate limiting, floating streaming widget
+- [x] **Phase 16: Quality and delivery**: Vitest, Playwright (en/ja, desktop/phone, axe),
+  CI/CD to Vercel

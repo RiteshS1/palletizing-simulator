@@ -1,0 +1,41 @@
+# テストと CI/CD
+
+ロボットソフトウェアの失敗は高くつくため、このプロジェクトはあらゆる層でテストしています。
+
+## テストピラミッド
+
+| 層 | ツール | 例 |
+|---|---|---|
+| ユニット | GoogleTest | 区間の重なり、AABB の交差、支持多角形、Eigen による姿勢の連鎖 |
+| プロパティ | GoogleTest `TEST_P` | 300個のランダムな箱セット：重なりなし、各箱がちょうど1回、各ステップがすべてのルールを満たす |
+| サニタイザー | ASan + UBSan | メモリと未定義動作のチェック付きで全テストを実行 |
+| ベンチマーク | Google Benchmark、`bench` | 固定シードでの計測とグリーディ法・EP 法の比較 |
+| 統合 | ROS 2 `launch_testing` | ノードを起動して `/plan_pallet` を呼び、40個中38個が配置されることを確認 |
+| Web ユニット | Vitest | BM25 検索、AI のフェイルオーバー、翻訳の網羅性 |
+| E2E | Playwright | 英語と日本語のブラウザ、デスクトップとスマートフォン、シミュレーター、ドキュメント、アシスタント |
+
+## プロパティテストとオラクル
+
+1つの既知の答えを確かめる代わりに、**プロパティテスト** は、どんな入力でも成り立つべき性質を確認します。チェックには独立した **オラクル**（パッカーとロジックを共有しない総当たりの O(n²) 重なり判定）を使うので、パッカーのバグが自分自身の陰に隠れることはありません。
+
+```cpp
+TEST_P(ExtremePointSeeds, PlanIsValid) {
+    const auto boxes = generateBoxes(50, GetParam());
+    expectValidPlan(packExtremePoints(boxes), boxes);
+}
+INSTANTIATE_TEST_SUITE_P(Property, ExtremePointSeeds, ::testing::Range(1u, 101u));
+```
+
+## 決定論という機能
+
+同じシードからは、macOS でも Linux でも、ネイティブでも WebAssembly でも、常に同じ計画が得られます。CI は両方の OS で実行して、それを証明しています。
+
+## パイプライン
+
+```text
+core（Linux + macOS）─┐
+sanitizers（ASan）  ──┼─▶ web（エンジン → WASM → ビルド → Vitest → Playwright）─▶ デプロイ
+ros2（Docker）      ──┘
+```
+
+すべてのプッシュとプルリクエストでパイプライン全体が実行されます。赤いチェックはマージを止め、デプロイはすべてが緑のときにだけ行われます。

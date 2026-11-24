@@ -1,0 +1,56 @@
+# Orders and waves
+
+One pallet is a packing problem. A whole shift is a **scheduling** problem: which order runs next,
+and on which pallet? That is the job of a **warehouse execution system (WES)**.
+
+## Business rules
+
+- A pallet carries orders for **one destination** (one truck stop).
+- An order is **never split** across pallets: the customer receives it together.
+- One robot places one carton at a time, about 6 seconds each.
+
+## Policy 1: order by order (online)
+
+Orders wait in a **priority queue**: most urgent first (priority 1 before 3, then the earliest
+deadline, then first come first served). Each popped order goes onto an open pallet for its destination,
+**Best-Fit** (the pallet that ends up fullest) or **First-Fit** (the first that fits).
+
+```cpp
+// std::priority_queue is a MAX-heap: the comparator must answer "is a LESS urgent than b?"
+struct LessUrgent {
+    bool operator()(int a, int b) const { return moreUrgent(orders[b], orders[a]); }
+};
+```
+
+## The online-packing trap
+
+Order by order packs **badly**: 15 pallets at 19% average fill for 24 orders. The first order
+leaves a ragged top surface; the next order's cartons fail the support and load-bearing rules; and
+because orders can't be split, one failed carton fails the whole order. This is **online** packing
+(no knowledge of what comes next), which is much harder than offline packing.
+
+## Policy 2: waves (batched)
+
+Hold orders per destination until about a pallet's worth is waiting, or until a deadline forces a
+start, then plan the whole batch together with the offline extreme-points packer. If it overflows,
+drop the least urgent order and plan again.
+
+| 24 orders, seed 7 | Order by order | Waves |
+|---|---|---|
+| Pallets | 15 | **7** |
+| Average fill | 19% | **42%** |
+| Shift length | **17 min** | 25 min |
+| Late orders | 0 | 0 |
+
+That is the classic **latency vs efficiency** trade-off, the same idea behind database group commits
+and Nagle's algorithm in TCP.
+
+## Event-driven simulation
+
+Instead of ticking a clock every second, the simulation jumps straight to the next interesting time:
+the next order arrival, or the moment a waiting order must start to meet its deadline.
+
+## Data structures used
+
+- **Binary heap** (`std::priority_queue`): O(log n) push and pop.
+- **Hash map** (`std::unordered_map`): destination → open pallets or waiting orders, O(1) average lookup.

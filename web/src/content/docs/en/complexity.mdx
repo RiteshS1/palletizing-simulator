@@ -1,0 +1,39 @@
+# Complexity cheat sheet
+
+n = cartons on the pallet, k = contact corners, P = extreme points, R = multi-start runs, m = orders.
+
+| Operation | Complexity | Notes |
+|---|---|---|
+| AABB intersection | O(1) | three interval overlaps |
+| Check one placement | O(n) | single pass over placed cartons, plus the hull |
+| Convex hull (monotone chain) | O(k log k) | the sort dominates |
+| Point in convex polygon | O(h) | left of every edge |
+| Center of mass (running sums) | O(1) per query | instead of O(n) recomputation |
+| Greedy layer, full plan | O(n log n + n²) | sort + row and rule checks |
+| Extreme points, one run | O(n · P · n) = O(n³) | P grows linearly with n |
+| Extreme points, multi-start | O(R · n³) | R = 12 |
+| Priority queue push/pop | O(log m) | binary heap |
+| Destination lookup | O(1) average | hash map |
+| BM25 search (assistant) | O(chunks × query terms) | over an inverted index |
+| Welford mean and variance | O(1) per sample | one pass, numerically stable |
+
+## Measured with Google Benchmark
+
+`micro_bench` times the hot paths and fits a Big-O curve:
+
+```bash
+./build/release/micro_bench
+# BM_CheckPlacement/64     ~ microseconds, fitted O(N)
+# BM_ExtremePoints/80      ~ milliseconds, fitted O(N^3)
+```
+
+## Why heuristics win in industry
+
+An exact solver for 3D packing with stability constraints can take minutes or hours. A cell places a
+carton every 6–10 seconds, so a heuristic that is within a few percent of optimal in milliseconds is
+the right engineering choice.
+
+<Interview>
+When asked about complexity, give the dominant term and the reason ("O(n³): n cartons × O(n) candidate
+points × an O(n) rule check"), then the practical number ("about 3 ms for 40 cartons").
+</Interview>

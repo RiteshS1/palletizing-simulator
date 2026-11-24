@@ -1,0 +1,43 @@
+# WebAssembly
+
+**WebAssembly (WASM)** is a compact binary instruction format that browsers run at near-native
+speed. You don't write it by hand: you compile C++, Rust or other languages to it.
+
+## How this project uses it
+
+- **Emscripten** (`em++`) compiles the same C++ engine the CLI uses into `palletizer.wasm`, plus a
+  small JavaScript loader.
+- **embind** exposes two functions to JavaScript: `pack(algo, boxes, seed, minSupport)` and
+  `wes(orders, seed)`. Both return JSON strings, which keeps the boundary tiny.
+- vcpkg builds the dependencies for the `wasm32-emscripten` target, so fmt and nlohmann/json work in
+  the browser too.
+- The simulator runs the engine inside a **Web Worker**, a background thread, so planning never
+  blocks scrolling or animation.
+
+## Proof that it's the same code
+
+An end-to-end test runs the planner inside the browser and compares the result with the native
+CLI's output for the same seed: **byte-for-byte identical** apart from the measured runtime. That is
+only possible because
+
+- the random numbers are mapped by our own code, not `std::uniform_int_distribution` (whose output
+  differs between standard libraries), and
+- iteration order is deterministic (`std::set`, not a hash set).
+
+## Performance
+
+Extreme points with 12 multi-start runs takes about 6 ms natively and about 20 ms in WASM:
+roughly 3× slower, and still instant for a person.
+
+## The build
+
+```bash
+export EMSCRIPTEN_ROOT=$(brew --prefix emscripten)/libexec
+cmake --preset wasm && cmake --build --preset wasm
+# -> build/wasm/palletizer.js + palletizer.wasm (about 400 KB)
+```
+
+<Interview>
+"One C++ core, several front-ends": the CLI, a ROS 2 node and the browser all call the same
+`api.cpp`. Keeping the core free of OS calls and heavy dependencies is what makes that possible.
+</Interview>

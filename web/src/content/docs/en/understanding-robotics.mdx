@@ -1,0 +1,56 @@
+# Understanding robotics
+
+A robot cell is a small factory: sensors tell the software what is there, the software decides what
+to do, and actuators do it. This loop, **sense → plan → act**, runs for every carton.
+
+## The parts of a palletizing cell
+
+- **Conveyor** with photo-eyes that detect a carton arriving.
+- **Vision:** a 3D camera measures the carton's size and pose; a scanner reads its barcode.
+- **Robot arm:** usually 4 axes for palletizing (base, shoulder, elbow, wrist yaw), because cartons
+  stay upright, so tilting the tool is never needed. General-purpose arms have 6 axes.
+- **End-effector:** a vacuum gripper (suction cups and a vacuum generator) for most cartons;
+  fork or clamp grippers for heavy or porous ones.
+- **Controller:** the robot vendor's real-time motion controller, plus a PLC coordinating conveyors,
+  stations and safety.
+
+## Frames and transforms
+
+Every position needs a reference: a **frame** is an origin plus three axes. A cell has many: world,
+robot base, tool, camera, pallet. Converting between them is a **rigid transform**: a rotation plus a
+translation, written as a 4 × 4 matrix
+
+```text
+T_base_tool = T_base_pallet · T_pallet_tool
+```
+
+Read it right to left: a pose known in the pallet frame, chained through where the pallet sits
+relative to the robot, gives the pose the robot needs. PalletLab's `robot_cell.cpp` does exactly
+this with Eigen's `Isometry3d`. The live model on this page shows the `world`, `robot_base`,
+`pallet` and `tool` frames; watch the tool frame jump to each carton's place pose.
+
+## Kinematics
+
+- **Forward kinematics (FK):** joint angles → where the tool is. Easy: multiply one transform per joint.
+- **Inverse kinematics (IK):** desired tool pose → joint angles. Harder: there may be several
+  solutions (elbow up or down), or none if the pose is out of reach. 4-axis palletizers have simple
+  closed-form IK; 6-axis arms use analytic solvers or numerical optimisation.
+
+## Rotations and quaternions
+
+Rotations can be stored as matrices, Euler angles or **quaternions** (`x, y, z, w`). Quaternions avoid
+gimbal lock and interpolate smoothly, so ROS and most robot APIs use them. A rotation is always a
+**unit** quaternion, which is something our tests check.
+
+## The pick-and-place cycle
+
+1. Detect and measure the carton on the conveyor.
+2. Plan its spot on the pallet (this project's job).
+3. Move above the pick point, descend, switch vacuum on, verify the grip (vacuum pressure sensor).
+4. Move to the **approach pose** above the place spot, descend vertically to the **place pose**.
+5. Release, lift away, repeat. A good cell does this in 6–10 seconds.
+
+<Interview>
+**"Which frame is that pose in?"** is the most common source of robotics bugs. Name the frame in
+variable names (`T_base_pallet`) and keep units consistent (ROS uses metres and radians).
+</Interview>

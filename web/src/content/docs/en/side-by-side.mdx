@@ -1,0 +1,41 @@
+# Side by side
+
+Claims like "extreme points is better" need evidence. The `bench` app produces it.
+
+## Fair comparison
+
+- **Same inputs:** for every seed both packers get the identical carton set.
+- **Many seeds:** 50 per size, because one lucky seed proves nothing.
+- **Mean ± standard deviation:** the spread matters as much as the average.
+
+| 40 cartons, 50 seeds | Greedy layer | Extreme points |
+|---|---|---|
+| Cartons placed | 55.0% ± 8.5 | **90.5% ± 5.7** |
+| Pallet filled | 37.4% ± 6.1 | **64.2% ± 4.2** |
+| Density | 43.0% ± 7.1 | **65.9% ± 4.7** |
+| Center of mass off-centre | 193 ± 37 mm | **73 ± 24 mm** |
+| Planning time | **0.05 ms** | 3.2 ms |
+
+Extreme points places more volume on 50 of 50 seeds, and its smaller standard deviation means it is
+also more consistent.
+
+## Welford's algorithm
+
+The benchmark computes mean and variance in **one pass** without storing samples:
+
+```cpp
+void add(double x) {
+    ++n;
+    double delta = x - mean;
+    mean += delta / n;
+    m2 += delta * (x - mean);   // variance = m2 / (n - 1)
+}
+```
+
+The textbook "average of squares minus square of average" loses precision badly in floating point;
+Welford's update is numerically stable.
+
+## Timing
+
+`std::chrono::steady_clock` never jumps (the wall clock can, when it syncs), so it is the right clock
+for measuring durations. For micro-benchmarks, Google Benchmark adds warm-up, repetitions and Big-O fitting.

@@ -1,7 +1,7 @@
 # CI/CD for the whole project.
 #
-#   core (Linux + macOS) ─┬─▶ web (engine → WASM → site → e2e) ──▶ deploy (main only)
-#   sanitizers (ASan)  ───┤
+#   core (Linux + macOS) ─┐
+#   sanitizers (ASan)  ───┼─▶ web (engine → WASM → lint → types → Vitest → build → Playwright) ─▶ deploy (Vercel, main only)
 #   ros2 (Docker)      ───┘
 name: CI/CD
 
@@ -80,10 +80,15 @@ jobs:
   web:
     needs: [core, sanitizers, ros2]
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
     steps:
       - uses: actions/checkout@v7
       - run: sudo apt-get update && sudo apt-get install -y ninja-build pkg-config
+        working-directory: .
       - name: vcpkg
+        working-directory: .
         run: |
           git clone --filter=blob:none https://github.com/microsoft/vcpkg "$VCPKG_ROOT"
           git -C "$VCPKG_ROOT" checkout "$(jq -r '."builtin-baseline"' core/vcpkg.json)"
@@ -101,20 +106,24 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - run: npm ci
-        working-directory: web
-      - run: npx playwright install --with-deps chromium
-        working-directory: web
-      - name: Build the site (C++ plans + WebAssembly + web build)
+      - name: Engine (C++ plans + WebAssembly)
+        run: npm run engine
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Unit tests (Vitest)
+        run: npm test
+      - name: Production build
         run: npm run build
-        working-directory: web
-      - name: End-to-end tests
+      - run: npx playwright install --with-deps chromium
+      - name: End-to-end tests (Playwright, English + Japanese, desktop + phone, axe)
         run: npm run test:e2e
-        working-directory: web
-      - name: Keep the site for deployment
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v5
+      - name: Keep the engine output for the deploy job
+        uses: actions/upload-artifact@v7
         with:
-          path: web/dist
+          name: engine
+          path: |
+            web/public/data
+            web/public/wasm
       - name: Upload the test report if something failed
         if: failure()
         uses: actions/upload-artifact@v7
@@ -122,16 +131,49 @@ jobs:
           name: playwright-report
           path: web/playwright-report
 
+  # Continuous deployment to Vercel, only from main and only after every test passed.
+  # Needs the VERCEL_TOKEN secret plus the VERCEL_ORG_ID / VERCEL_PROJECT_ID variables.
   deploy:
     needs: web
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
     environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+    defaults:
+      run:
+        working-directory: web
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@v5
+      - name: Skip when Vercel is not configured yet
+        id: check
+        working-directory: .
+        run: |
+          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_PROJECT_ID" ]; then echo "ready=false" >> "$GITHUB_OUTPUT"; echo "::notice::Vercel secrets not set; skipping deploy";
+          else echo "ready=true" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v7
+        if: steps.check.outputs.ready == 'true'
+      - uses: actions/download-artifact@v8
+        if: steps.check.outputs.ready == 'true'
+        with:
+          name: engine
+          path: web/public
+      - uses: actions/setup-node@v7
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - if: steps.check.outputs.ready == 'true'
+        run: npm ci && npm i -g vercel@66
+      - name: Build with Vercel (prebuilt), then deploy
+        id: deploy
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          url=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"

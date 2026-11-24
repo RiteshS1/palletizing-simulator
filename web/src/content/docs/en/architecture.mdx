@@ -1,0 +1,42 @@
+# Architecture
+
+## Repository layout
+
+```text
+core/          C++20 engine: geometry, rules, packers, WES, robot poses, JSON API
+  include/pal/   public headers        src/   implementation
+  apps/          palletize, wes_sim, bench (CLI11)
+  tests/         GoogleTest            bench/ Google Benchmark
+  wasm/          embind bindings for the browser
+ros2/          palletizer_interfaces (service) + palletizer_ros (node, launch, tests)
+web/           Next.js site: landing, docs (MDX, en + ja), simulator, AI assistant
+docker/        ROS 2 Jazzy image          scripts/  build-engine.sh, ros.sh
+```
+
+## One core, three front-ends
+
+```text
+                 ┌─▶ CLI apps (JSON files)  ─▶ web/public/data
+core (pal::core) ─┼─▶ WebAssembly (embind)  ─▶ simulator "Try other boxes"
+                 └─▶ ROS 2 node             ─▶ /plan_pallet, markers, TF
+```
+
+All three call `api.cpp` or the same packer functions, so a fix in the core reaches every front-end.
+
+## Frames
+
+- **Pallet frame:** integer millimetres, z up, origin at the deck's back-left corner. All packing happens here.
+- **Robot base frame:** metres, ROS conventions (x forward, y left, z up). Place poses are reported here.
+- **three.js scene:** metres, y up. The viewer puts a single rotated, scaled group around each pallet,
+  so the planner's numbers are used unchanged.
+
+## Key decisions
+
+| Decision | Why |
+|---|---|
+| Integer millimetres for packing | exact "top equals bottom" comparisons, no float epsilons |
+| Eigen only for poses | rotations are naturally floating-point |
+| JSON at the boundaries | one simple format for files, WASM and debugging |
+| Seeded, self-mapped randomness | identical results on every platform |
+| Heuristics, not exact solvers | milliseconds, well inside a robot's cycle time |
+| Static site + one API route | the engine runs in the browser; only the assistant needs a server |

@@ -1,0 +1,51 @@
+# ROS 2 と MoveIt
+
+**ROS 2**（Robot Operating System 2）は OS ではなく、ロボットソフトウェアの標準的なミドルウェアとツール群です。プログラムは **ノード** に分割され、**DDS** と呼ばれるパブリッシュ／サブスクライブ型のネットワークで通信します。
+
+## 基本概念
+
+| 概念 | 内容 | このプロジェクトでの例 |
+|---|---|---|
+| ノード | 1つの役割を持つプロセス | `palletizer_planner` |
+| トピック | 多対多のメッセージの流れ | `/pallet_markers`（可視化） |
+| サービス | リクエスト／レスポンス型の呼び出し | `/plan_pallet` |
+| アクション | フィードバックとキャンセルを持つ長い処理 | 実機で「この箱を置け」を実行する方法 |
+| パラメーター | 実行時の設定 | アルゴリズムの既定値 |
+| QoS | 配信の保証 | マーカーは *transient local* なので、後から接続しても最新の計画を受け取れる |
+| TF2 | 座標系の木構造とその変換 | `world → robot_base → pallet` |
+
+## palletizer パッケージ
+
+`ros2/palletizer_interfaces` はサービスを定義します。
+
+```text
+string algorithm "ep"
+uint32 box_count 40
+uint32 seed 42
+float64 min_support 0.75
+---
+bool success
+geometry_msgs/Pose[] place_poses
+geometry_msgs/Pose[] approach_poses
+...
+```
+
+`ros2/palletizer_ros` は C++ エンジンをノードとして包みます。`/plan_pallet` に応答し、箱ごとに立方体マーカーを配信し、静的な TF 座標系をブロードキャストします。公式の ROS 2 Jazzy Docker イメージの中で **colcon** によりビルドされ、**gtest** と、実際のノードを起動して他のクライアントと同じようにサービスを呼び出す **launch_testing** でテストされます。
+
+```bash
+scripts/ros.sh build   # Docker 内で colcon build
+scripts/ros.sh test    # ユニットテスト + launch テスト
+scripts/ros.sh call    # → success=True placed=38 offered=40 fill_ratio=0.7064
+```
+
+## MoveIt の位置づけ
+
+**MoveIt** は ROS の動作計画フレームワークです。ロボットモデル（URDF + SRDF）と **プランニングシーン**（パレットや配置済みの箱を衝突物体として登録したもの）をもとに、干渉のない関節軌道を計算します。私たちのサービスは、MoveIt が必要とするものをすでに返しています。
+
+- ロボット基準座標系での `geometry_msgs/Pose` としての `approach_poses` と `place_poses`
+- 最後の降下は鉛直な直線で、MoveIt の **デカルト経路** プランナーに最適
+- 配置済みの各箱は、次の計画の衝突物体になる
+
+<InterviewJa>
+役割分担をはっきり説明しましょう。**私たちのプランナーは「どこに置くか」を決め**（組合せ問題）、**MoveIt は「アームがどうやってそこへ行くか」を決めます**（連続的な幾何問題）。実際のシステムでも、これらの層は分けて設計されます。
+</InterviewJa>

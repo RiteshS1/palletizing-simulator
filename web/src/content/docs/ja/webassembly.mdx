@@ -1,0 +1,35 @@
+# WebAssembly
+
+**WebAssembly（WASM）** は、ブラウザがネイティブに近い速度で実行できるコンパクトなバイナリ命令形式です。手で書くものではなく、C++ や Rust などからコンパイルして作ります。
+
+## このプロジェクトでの使い方
+
+- **Emscripten**（`em++`）が、CLI と同じ C++ エンジンを `palletizer.wasm` と小さな JavaScript ローダーにコンパイルします。
+- **embind** が2つの関数を JavaScript に公開します。`pack(algo, boxes, seed, minSupport)` と `wes(orders, seed)` で、どちらも JSON 文字列を返すため、境界をとても小さく保てます。
+- vcpkg が `wasm32-emscripten` ターゲット向けに依存関係をビルドするので、fmt や nlohmann/json もブラウザで動きます。
+- シミュレーターはエンジンを **Web Worker**（バックグラウンドのスレッド）で実行するため、計画中もスクロールやアニメーションが止まりません。
+
+## 同じコードであることの証明
+
+E2E テストは、ブラウザ内でプランナーを実行し、同じシードでのネイティブ CLI の出力と比較します。計測した実行時間を除いて **1バイト残らず一致** します。これが可能なのは、
+
+- 乱数の変換を `std::uniform_int_distribution`（標準ライブラリごとに出力が異なる）ではなく自前のコードで行っていること、そして
+- 反復順序が決定論的であること（ハッシュセットではなく `std::set`）
+
+のおかげです。
+
+## 性能
+
+12回のマルチスタートを行うエクストリームポイント法は、ネイティブで約 6 ms、WASM で約 20 ms です。およそ3倍遅いものの、人にとっては一瞬です。
+
+## ビルド
+
+```bash
+export EMSCRIPTEN_ROOT=$(brew --prefix emscripten)/libexec
+cmake --preset wasm && cmake --build --preset wasm
+# -> build/wasm/palletizer.js + palletizer.wasm（約 400 KB）
+```
+
+<InterviewJa>
+「1つの C++ コア、複数のフロントエンド」：CLI、ROS 2 ノード、ブラウザは、すべて同じ `api.cpp` を呼び出します。それを可能にしているのは、コアから OS 呼び出しや重い依存関係を排除していることです。
+</InterviewJa>

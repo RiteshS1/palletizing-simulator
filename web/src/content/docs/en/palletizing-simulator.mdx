@@ -1,0 +1,48 @@
+# What is a palletizing simulator?
+
+**Palletizing** is stacking cartons onto a pallet so they can be wrapped and shipped as one unit. A
+**palletizing simulator** lets you plan and inspect those stacks in software before (or instead of)
+running a real robot.
+
+## Single-SKU vs mixed-case
+
+- **Single-SKU** palletizing stacks identical boxes in a repeating pattern. The pattern can be
+  computed once and reused all day.
+- **Mixed-case** palletizing gets cartons of different sizes and weights, often in an order the
+  planner does not control, because they arrive on a conveyor. Every pallet needs fresh planning. This
+  is the hard version, and the one PalletLab solves.
+
+## The robot cell
+
+A typical cell has an **infeed conveyor**, a **vision system** that measures each carton, an
+**industrial arm** with a gripper (usually vacuum suction), and one or more **pallet stations**
+marked out with floor tape and guarded by safety fences or light curtains.
+
+## What the planner outputs
+
+For every carton, in order:
+
+| Field | Meaning |
+|---|---|
+| `x, y, z` | Where the carton's back-left-bottom corner goes, in mm, in the **pallet frame** |
+| `sx, sy, sz` | Its size after any rotation |
+| `rotated` | Turned 90° about the vertical axis (cartons stay upright) |
+| `placePose` | Where the **tool** must be to release it, in metres, in the **robot base frame**, as a position plus a quaternion |
+| `approachPose` | 300 mm straight above `placePose`; the robot descends vertically from here |
+
+A motion planner (for example MoveIt) turns those poses into collision-free joint trajectories.
+
+## The rules every placement must pass
+
+- Inside the pallet footprint and under 1800 mm.
+- No overlap with other cartons (touching faces is fine).
+- Reachable from above: nothing already sits over the spot.
+- At least 75% of the base supported, with the center inside the support polygon.
+- Never heavier than the carton below it.
+- Total load under 1000 kg.
+
+## What this simulator does not model
+
+Real arm kinematics and collisions with the arm itself, physics (we use rule-based static
+stability), sensor noise, and deformable cartons. The **Real-world complexity** chapter explains how
+production systems deal with each.

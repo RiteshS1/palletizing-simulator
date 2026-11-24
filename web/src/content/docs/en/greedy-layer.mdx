@@ -1,0 +1,50 @@
+# Greedy layer
+
+The baseline packer stacks cartons the way you might shelve books.
+
+## The algorithm
+
+1. Sort cartons tallest first (heavier first on ties), so each pass forms flatter layers.
+2. Walk the deck in **rows** along x. A row's depth is set by its first carton.
+3. Each carton goes into the **first row with room** (First-Fit), or opens a new row.
+4. It drops straight down onto whatever is below it.
+5. Cartons that broke a rule wait for the next pass, a new layer. Stop when a pass places nothing.
+
+## Greedy algorithms
+
+A greedy algorithm makes the locally best choice and never revisits it. It is provably optimal only
+for problems with special structure (Dijkstra's shortest paths, Huffman coding, interval
+scheduling). For packing it is a heuristic: quick, but blind to how one choice blocks a better one later.
+
+## Bin packing is NP-hard
+
+Deciding whether items fit into k bins is NP-complete. Take a list of numbers and ask whether they
+split into two halves with equal sums (PARTITION): that is the same as asking whether they fit into 2
+bins of size sum/2. No known algorithm is both exact and polynomial, so industry uses heuristics.
+
+## First-Fit-Decreasing
+
+Sort big to small and put each item in the first bin with room. In 1D it is proven to use at most
+about 11/9 of the optimal number of bins. Our rows are FFD applied to shelves.
+
+## Why it struggles here
+
+On 50 random seeds with 40 cartons, greedy places only 55% of the cartons. It picks a spot first and
+only then asks whether the rules allow it. Relaxing the rules shows how sensitive that makes it:
+
+| Rules | Greedy fill | Extreme-points fill |
+|---|---|---|
+| Default | 38% | 64% |
+| No load-bearing rule | 46% | 68% |
+| Support 50% | 43% | 69% |
+| Both relaxed | 58% | 71% |
+
+## Complexity
+
+Sorting is O(n log n); each placement checks rows and rules, so a full plan is O(n²) rule checks in
+the worst case. About 0.05 ms for 40 cartons.
+
+<Interview>
+Comparator gotcha: `std::sort` needs a strict weak ordering. Writing `a.h >= b.h` instead of
+`a.h > b.h` says "a comes before itself", which is undefined behaviour and can crash.
+</Interview>

@@ -1,0 +1,42 @@
+# Industry standards
+
+The engine is built with the same tools you would find in a professional robotics C++ codebase.
+
+| Tool | What it does | How this project uses it |
+|---|---|---|
+| **CMake** | Generates builds for any platform and compiler | `CMakeLists.txt`, plus `CMakePresets.json` with `release`, `debug-asan` and `wasm` presets |
+| **vcpkg** | C++ package manager | `vcpkg.json` manifest pinned to a baseline commit, so every machine gets the same versions |
+| **GoogleTest** | Unit testing framework | 330 test cases, including parameterized property tests over 300 random seeds |
+| **Google Benchmark** | Micro-benchmarks with statistics | `micro_bench` measures rule checks and full plans and fits a Big-O curve |
+| **Eigen** | Linear algebra (vectors, matrices, transforms, quaternions) | robot-frame poses via `Isometry3d` |
+| **fmt** | Type-safe formatting (basis of C++20 `std::format`) | CLI output and summaries |
+| **nlohmann/json** | JSON for modern C++ | plan output; `ordered_json` keeps keys in a readable order |
+| **CLI11** | Command-line parsing | `palletize`, `wes_sim`, `bench` options with validation and `--help` |
+| **ROS 2 + colcon** | Robot middleware and build tool | `ros2/` packages, built and tested in Docker |
+| **Sanitizers** | Runtime bug detectors | ASan + UBSan preset, run in CI |
+| **clang-format / clang-tidy** | Style and static analysis | configs in `core/` |
+| **Docker** | Reproducible environments | ROS 2 Jazzy workspace image |
+| **GitHub Actions** | CI/CD | builds, tests, sanitizers, ROS tests, web tests, deploy |
+| **Playwright** | Browser end-to-end tests | English and Japanese browsers, desktop and phone |
+
+## Why not Boost?
+
+Boost is a huge, high-quality collection of libraries, sometimes called the C++ "kitchen sink".
+Many of its best parts are now in the standard library (`std::optional`, `std::variant`,
+`std::filesystem`, smart pointers). This project needs none of the rest, and skipping it keeps the
+WebAssembly build small. Boost.Geometry could compute our convex hulls, but writing the monotone
+chain ourselves is the point of a learning project.
+
+## A preset in practice
+
+```bash
+export VCPKG_ROOT=~/vcpkg
+cmake --preset release          # vcpkg installs fmt, Eigen, GoogleTest... then CMake configures
+cmake --build --preset release  # Ninja builds the library, apps and tests
+ctest --preset release          # 330 tests in under a second
+```
+
+<Callout title="Why pin versions?">
+A manifest with a fixed `builtin-baseline` means CI, your laptop and a colleague's machine all build
+with identical dependency versions. Most "works on my machine" bugs disappear.
+</Callout>

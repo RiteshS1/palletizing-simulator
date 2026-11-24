@@ -1,0 +1,53 @@
+# Why C++?
+
+Most robot software that moves things, from motion controllers to ROS 2 core, MoveIt, perception
+libraries and planners, is written in C++. The reasons are practical.
+
+## Predictable performance
+
+- **No garbage collector**, so there are no surprise pauses in the middle of a control loop. Memory is
+  released deterministically when objects go out of scope (**RAII**).
+- **Zero-cost abstractions:** templates, `std::vector`, lambdas and classes compile down to the same
+  machine code you would write by hand.
+- Control loops run at 1 kHz or faster; a 1 ms deadline leaves no room for runtime overhead.
+
+## The ecosystem
+
+ROS 2 (`rclcpp`), MoveIt, Eigen (linear algebra), PCL (point clouds), OpenCV (vision), Drake and
+Pinocchio (dynamics) are all C++ first. Robot vendors ship C++ SDKs.
+
+## Close to the hardware
+
+C++ talks directly to drivers, shared memory, fieldbus stacks and GPUs, and it runs on embedded
+Linux boards as well as industrial PCs.
+
+## One codebase, many targets
+
+This project's engine compiles to a native CLI, a ROS 2 node, and WebAssembly for the browser from
+the same sources. That only works because the core uses the standard library plus portable,
+header-only dependencies.
+
+## A taste of the engine
+
+Exact geometry matters: integer millimetres, half-open intervals and a 64-bit volume.
+
+```cpp
+// Two boxes intersect iff their intervals overlap on ALL three axes. O(1).
+inline bool intersects(const AABB& a, const AABB& b) {
+    return overlap1D(a.min.x, a.max.x, b.min.x, b.max.x) > 0 &&
+           overlap1D(a.min.y, a.max.y, b.min.y, b.max.y) > 0 &&
+           overlap1D(a.min.z, a.max.z, b.min.z, b.max.z) > 0;
+}
+```
+
+## The trade-offs
+
+C++ gives you sharp tools: undefined behaviour (signed overflow, out-of-bounds access) is your
+responsibility. That is why this project builds with `-Wall -Wextra -Wconversion`, runs every test
+under **AddressSanitizer** and **UndefinedBehaviorSanitizer**, and uses static analysis. Rust is
+gaining ground in robotics for its memory safety, but the C++ ecosystem remains the industry default.
+
+<Interview>
+"C++ because of deterministic latency (no GC), zero-cost abstractions, and the ecosystem: ROS 2,
+MoveIt and Eigen. I manage its risks with RAII, sanitizers, warnings-as-signal and tests."
+</Interview>

@@ -1,0 +1,41 @@
+# Using the simulator
+
+The simulator has four modes, each on its own page.
+
+| Mode | Shows |
+|---|---|
+| Greedy layer | The baseline packer filling rows and layers |
+| Extreme points | The smarter heuristic, with its candidate points |
+| Side by side | Both packers on the same 40 cartons |
+| Orders | A shift of customer orders flowing onto pallets for three stores |
+
+## Controls
+
+- **Play / pause** with the orange button or the space bar.
+- **Step** one carton forward or back with the arrow buttons or the arrow keys.
+- **Home** and **End** jump to the empty or the finished pallet.
+- The **conveyor** under the 3D view has one carton per placement: its height is the carton's
+  height, its colour is its weight (darker is heavier). Click any carton to jump there.
+- Drag to orbit the camera, scroll to zoom, and point at a carton to inspect it.
+
+## Overlays
+
+- **Center of mass:** the blue ball and plumb line. The ring on the deck marks the pallet centre; a
+  good stack keeps the ball close to it and low.
+- **Support polygon:** the blue shape under the current carton is the convex hull of everything
+  holding it up. The orange dot is the carton's centre; it must stay inside.
+- **Candidate points** (extreme points only): every corner the algorithm considered for the current
+  carton. The orange one is the spot it chose.
+
+## Try other boxes
+
+The form on the right runs the **C++ engine compiled to WebAssembly** inside a background worker, so
+the page never freezes. Change the number of boxes, the random seed or the minimum support and pack
+again. The same seed always gives the same cartons, so you can compare runs fairly.
+
+## Reading the numbers
+
+- **Pallet filled:** carton volume ÷ the pallet's full volume (1200 × 1000 × 1800 mm).
+- **Density:** carton volume ÷ (deck area × actual stack height): how much air is inside the stack.
+- **Center of mass off-center:** horizontal distance of the center of mass from the pallet centre.
+  Lower is safer to wrap and ship.

@@ -5,7 +5,7 @@
   then open only the files that phase touches.
 - Locate before reading: use Grep/Glob to find the symbol or file, then read just that file
   (or just the relevant line range if it's long).
-- **Never read generated or vendored paths:** `core/build/`, `web/node_modules/`, `web/dist/`,
+- **Never read generated or vendored paths:** `core/build/`, `web/node_modules/`, `web/.next/`, `web/src/generated/`,
   `package-lock.json`, `web/public/data/` (generated plans), `web/public/wasm/` (compiled engine),
   `web/test-results/`, `web/playwright-report/`, and the `docs/*.png` screenshots.
 - To inspect a plan, query it (`python3 -c` / `jq`) for the fields you need; plans are large.
@@ -23,4 +23,6 @@
   pick or skip them, WASM toolchain, test types (unit, property, e2e, CI/CD).
 - Keep `idea/concepts.md` as the long-lived notes: append each phase's concepts there.
 - Claude writes the code; keep it readable enough for the user to explain line by line.
-- Verify with `make -C core test`, and for web changes `npm run build && npm run test:e2e` in `web/`.
+- Verify C++ with `ctest --preset release` (in `core/`), and web changes with
+  `npm run lint && npm run typecheck && npm test && npm run build && npm run test:e2e` (in `web/`).
+- For long multi-phase builds, finish and verify everything first, then give short teaching notes.

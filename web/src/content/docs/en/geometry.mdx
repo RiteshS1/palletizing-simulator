@@ -1,0 +1,46 @@
+# Geometry and AABBs
+
+Every packing decision starts with one question: do these two boxes collide?
+
+## Coordinate frame
+
+The planner works in the **pallet frame**: origin at the back-left corner of the deck, x along the
+1200 mm side, y along the 1000 mm side, z up.
+
+## Integer millimetres
+
+Stacking depends on exact equality: "is this carton's top exactly at that carton's bottom?". Floating
+point cannot represent most decimals exactly (`0.1 + 0.2 != 0.3`), so every comparison would need a
+tolerance. Integer millimetres make every comparison exact, and 1 mm is finer than any carton tolerance.
+
+## Axis-aligned bounding boxes
+
+An **AABB** is a box whose edges are parallel to the axes, stored as two corners, `min` and `max`.
+Ours are **half-open**, `[min, max)`: a box from 0 to 100 and one from 100 to 200 touch but do not
+overlap, which is exactly right for cartons stacked face to face.
+
+```cpp
+inline int overlap1D(int a0, int a1, int b0, int b1) {
+    return std::max(0, std::min(a1, b1) - std::max(a0, b0));
+}
+```
+
+Two AABBs intersect **iff** their intervals overlap on all three axes. One axis with a gap separates
+them: the separating axis theorem, specialised to boxes. Each test is O(1).
+
+## Overflow
+
+The pallet's volume is 1200 × 1000 × 1800 = 2,160,000,000 mm³, more than a 32-bit `int` holds
+(2,147,483,647). Signed overflow in C++ is **undefined behaviour**, so areas and volumes use
+`int64_t`, casting the first factor so the whole multiplication happens in 64 bits.
+
+## Upright only
+
+Cartons carry a "this side up" mark, so they may only rotate about the vertical axis: 2
+orientations instead of 6. A smaller search space at a small cost in density.
+
+<Interview>
+Checking a new carton against n placed ones is O(n), so a whole plan is O(n²) checks. With thousands
+of objects you would add a spatial index (uniform grid, octree, BVH); for 50 cartons a plain loop is
+faster and simpler.
+</Interview>

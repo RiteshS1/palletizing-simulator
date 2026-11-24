@@ -1,0 +1,199 @@
+@import "tailwindcss";
+
+/* Design tokens. Light, crisp industrial palette with one signal colour (the robot / "now"). */
+@theme {
+  --color-paper: #f7f7f5;
+  --color-paper-2: #efefeb;
+  --color-paper-3: #e6e6e1;
+  --color-ink: #141414;
+  --color-ink-2: #3b3b38;
+  --color-mute: #6d6d67;
+  --color-line: #dedeD8;
+  --color-signal: #ff5a1f;
+  --color-signal-deep: #d9430c;
+  --color-peach: #f2a07b;
+  --color-peach-soft: #fbe3d6;
+  --color-kraft: #c9a678;
+  --color-probe: #2b59c3;
+  --color-night: #111214;
+
+  --font-display: var(--font-archivo), var(--font-noto-jp), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-geist), var(--font-noto-jp), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --radius-xs: 2px;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+  }
+  /* Japanese reads better with a little more line height and no letter-spacing tricks. */
+  :lang(ja) body {
+    line-height: 1.8;
+  }
+  :lang(ja) .tracking-tight,
+  :lang(ja) .tracking-tighter {
+    letter-spacing: 0;
+  }
+  ::selection {
+    background: var(--color-signal);
+    color: white;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-signal);
+    outline-offset: 3px;
+  }
+  /* Author display rules beat the browser's [hidden]; keep hidden elements truly hidden. */
+  [hidden] {
+    display: none !important;
+  }
+}
+
+/* Long-form docs typography (MDX). */
+@layer components {
+  .prose-doc {
+    max-width: 72ch;
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    color: var(--color-ink-2);
+  }
+  .prose-doc h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 3vw + 1rem, 3rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--color-ink);
+    font-weight: 600;
+    margin: 0 0 1rem;
+    font-stretch: 112%;
+  }
+  .prose-doc h2 {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    line-height: 1.2;
+    color: var(--color-ink);
+    font-weight: 600;
+    margin: 2.75rem 0 0.75rem;
+    scroll-margin-top: 6rem;
+  }
+  .prose-doc h3 {
+    font-size: 1.125rem;
+    color: var(--color-ink);
+    font-weight: 600;
+    margin: 2rem 0 0.5rem;
+  }
+  .prose-doc p,
+  .prose-doc ul,
+  .prose-doc ol {
+    margin: 0 0 1.1rem;
+  }
+  .prose-doc ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+  }
+  .prose-doc ol {
+    list-style: decimal;
+    padding-left: 1.25rem;
+  }
+  .prose-doc li {
+    margin: 0.3rem 0;
+  }
+  .prose-doc li::marker {
+    color: var(--color-signal);
+  }
+  .prose-doc a {
+    color: var(--color-ink);
+    text-decoration: underline;
+    text-decoration-color: var(--color-signal);
+    text-underline-offset: 3px;
+  }
+  .prose-doc strong {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+  .prose-doc code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    background: var(--color-paper-3);
+    padding: 0.1em 0.35em;
+    border-radius: var(--radius-xs);
+    color: var(--color-ink);
+  }
+  .prose-doc pre {
+    background: var(--color-night);
+    color: #e9e9e4;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-xs);
+    overflow-x: auto;
+    margin: 0 0 1.25rem;
+    font-size: 0.85rem;
+    line-height: 1.6;
+  }
+  .prose-doc pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+  }
+  .prose-doc table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 1.5rem;
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .prose-doc th,
+  .prose-doc td {
+    text-align: left;
+    padding: 0.55rem 0.75rem 0.55rem 0;
+    border-bottom: 1px solid var(--color-line);
+    vertical-align: top;
+  }
+  .prose-doc th {
+    color: var(--color-ink);
+    font-weight: 600;
+  }
+  .prose-doc blockquote {
+    border-left: 3px solid var(--color-signal);
+    padding: 0.25rem 0 0.25rem 1rem;
+    margin: 0 0 1.25rem;
+    color: var(--color-ink);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Japanese headlines: no artificial width or negative tracking, and line breaks at phrase
+   boundaries ("箱で考える / ロボット。") instead of in the middle of a word. */
+:lang(ja) h1,
+:lang(ja) h2,
+:lang(ja) h3 {
+  font-stretch: 100% !important;
+  letter-spacing: 0 !important;
+  word-break: auto-phrase;
+  text-wrap: balance;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 38s linear infinite;
+}

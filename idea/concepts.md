@@ -357,3 +357,28 @@ Meshes update on the next animation frame, not instantly. Asserting once can rac
 `core (Linux + macOS) → e2e → deploy`. `needs:` chains jobs; the deploy job runs only on pushes to
 main and only if every test passed. It uses OIDC (`id-token: write`) instead of a stored secret
 to prove its identity to GitHub Pages.
+
+---
+
+# v2: the learning platform (Phases 9–16)
+
+The full explanations now live in the website's docs (`web/src/content/docs/`). Short notes:
+
+- **CMake presets + vcpkg manifest:** one command per configuration; a pinned `builtin-baseline`
+  gives every machine identical dependency versions. vcpkg also cross-builds deps for WebAssembly.
+- **GoogleTest `TEST_P`:** one test case per seed, so a failure names its seed. CTest runs 330 cases.
+- **Sanitizers:** ASan finds memory errors, UBSan undefined behaviour. (ASan hangs on macOS 26 with
+  Apple clang 17, so it runs in CI on Linux.)
+- **Eigen `Isometry3d`:** `T_base_tool = T_base_pallet · T_pallet_tool`; ROS uses metres + quaternions.
+  Integers for packing (exact), floats for poses (rotations).
+- **ROS 2:** nodes, topics, services, QoS (transient local = latched), TF2 static transforms, colcon,
+  rosdep, launch_testing. MoveIt plans the arm motion to our place poses.
+- **Next.js App Router + next-intl:** `proxy.ts` negotiates `Accept-Language`; every page is
+  pre-rendered per locale. Values exported from `"use client"` files are proxies on the server.
+- **Scene graph trick:** one rotated, scaled group per pallet makes the planner's mm/z-up numbers
+  usable in three.js unchanged. Per-frame animation reads a store in `useFrame`, not React state.
+- **BM25 + inverted index:** IDF rewards rare terms, tf saturates; Japanese uses character bigrams.
+- **Failover wrapper:** a `LanguageModelV4` that tries providers in order and peeks the first stream
+  part, so errors before content switch providers. No hidden retries (free-tier quotas).
+- **Testing pyramid on the web:** Vitest (logic), Playwright (behaviour, two locales, two devices),
+  axe (accessibility). Found real bugs: an RSC boundary, mobile overflow, colour contrast.

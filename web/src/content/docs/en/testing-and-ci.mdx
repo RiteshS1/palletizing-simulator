@@ -1,0 +1,45 @@
+# Testing and CI/CD
+
+Robot software fails in expensive ways, so this project tests at every layer.
+
+## The test pyramid
+
+| Layer | Tool | Examples |
+|---|---|---|
+| Unit | GoogleTest | interval overlap, AABB intersection, support polygon, Eigen pose chaining |
+| Property | GoogleTest `TEST_P` | 300 random box sets: no overlaps, every box exactly once, every step passes every rule |
+| Sanitizers | ASan + UBSan | the full suite with memory and undefined-behaviour checks |
+| Benchmark | Google Benchmark, `bench` | timings and greedy-vs-EP comparisons over fixed seeds |
+| Integration | ROS 2 `launch_testing` | start the node, call `/plan_pallet`, check 38 of 40 cartons placed |
+| Web unit | Vitest | BM25 retrieval, AI failover, translation completeness |
+| End-to-end | Playwright | English and Japanese browsers, desktop and phone, simulator, docs, assistant |
+
+## Property tests and oracles
+
+Instead of checking one known answer, a **property test** asserts something that must hold for every
+input. The checks use an independent **oracle**, a brute-force O(n²) overlap scan that shares no logic
+with the packer, so a packer bug cannot hide behind itself.
+
+```cpp
+TEST_P(ExtremePointSeeds, PlanIsValid) {
+    const auto boxes = generateBoxes(50, GetParam());
+    expectValidPlan(packExtremePoints(boxes), boxes);
+}
+INSTANTIATE_TEST_SUITE_P(Property, ExtremePointSeeds, ::testing::Range(1u, 101u));
+```
+
+## Determinism as a feature
+
+The same seed always produces the same plan, on macOS and Linux, natively and in WebAssembly. CI
+runs on both operating systems to prove it.
+
+## The pipeline
+
+```text
+core (Linux + macOS) ─┐
+sanitizers (ASan)  ───┼─▶ web (engine → WASM → build → Vitest → Playwright) ─▶ deploy
+ros2 (Docker)      ───┘
+```
+
+Every push and pull request runs the whole pipeline; a red check blocks the merge, and deployment
+happens only when everything is green.

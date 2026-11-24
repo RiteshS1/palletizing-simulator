@@ -1,0 +1,56 @@
+# Real-world complexity
+
+The planner in this project is clean: exact sizes, known weights, perfect placement. Real cells are
+not. Here is what production systems handle, and how.
+
+## Perception is noisy
+
+Cameras measure sizes and poses with millimetre-level error, worse with shiny tape, dark cartons or
+sagging lids. Planners add **clearance margins** between cartons and verify each placement with a
+second measurement. Our integer-millimetre geometry assumes exact numbers; a real system would add
+tolerances to every comparison.
+
+## Cartons are not perfect boxes
+
+Cartons arrive dented, bulging or with weak corners. A **crush-strength** model (how much load a
+carton can carry, based on its board grade and size) replaces our simple "never heavier on lighter"
+rule, and the load is summed down the whole support graph, not just pairwise.
+
+## Weights may be unknown
+
+Without a check-weigher, weight comes from master data that may be wrong. Robots measure the load at
+the tool (payload estimation) and planners stay conservative.
+
+## The order of arrival
+
+Cartons arrive in an order the planner does not choose. Real systems use a **buffer** (a few cartons
+of lookahead on a conveyor or a staging area) to reorder them, which is the online-vs-offline
+packing gap you can see in the **Orders** chapter.
+
+## Cycle time
+
+A cell might need a carton placed every 6–10 seconds. Planning must fit well inside that budget,
+which is why heuristics running in milliseconds beat exact solvers that may need minutes.
+
+## Robot reachability and collisions
+
+The arm itself must not hit the stack, the fence or itself. Our "reachable from above" rule is a
+simplified version; a real planner checks the gripper's footprint and approach path against the
+whole planning scene.
+
+## Safety
+
+Industrial robots follow safety standards such as **ISO 10218** (robot and cell safety) and, for
+collaborative robots, **ISO/TS 15066**. Fences, light curtains and safety-rated controllers stop
+motion when a person enters the cell. Software never replaces these hardware safety layers.
+
+## Stability in transport
+
+A pallet that stands still may still shift in a truck. Planners keep the **center of mass low and
+centred**, interlock layers where possible, and the pallet is stretch-wrapped before it ships.
+
+<Interview>
+A strong answer acknowledges the gap: "My planner assumes exact inputs. In production I would add
+tolerances, verify each placement with sensing, model crush strength, and keep planning time well
+inside the cycle time."
+</Interview>

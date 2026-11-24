@@ -1,0 +1,46 @@
+# IoT in the warehouse
+
+A robot cell is one node in a large network of machines and software. Understanding that network
+explains why a planner gets the inputs it does.
+
+## The software layers
+
+| Layer | Question it answers | Time scale |
+|---|---|---|
+| ERP | What did customers buy? | days |
+| WMS (Warehouse Management System) | What stock do we have, where is it, which orders exist? | hours |
+| WES (Warehouse Execution System) | Which order runs now, on which station and pallet? | minutes |
+| WCS (Warehouse Control System) | Run this conveyor, divert this carton, tell this robot to start | seconds |
+| PLC / robot controller | Switch this motor and valve now | milliseconds |
+
+PalletLab's **Orders** chapter implements a small WES.
+
+## The devices
+
+- **Photo-eyes and light barriers** detect cartons passing a point on a conveyor.
+- **Barcode and RFID readers** identify each carton.
+- **Check-weighers** weigh cartons in motion, which is how the planner knows the weights.
+- **3D cameras** (structured light, time-of-flight, stereo) measure size and pose.
+- **Vacuum pressure sensors** confirm a gripper holds a carton.
+- **Safety devices:** light curtains, door switches and laser scanners that stop the robot when a person enters.
+
+## How they talk
+
+- **Fieldbuses** (PROFINET, EtherNet/IP, EtherCAT) connect PLCs to drives and sensors with
+  deterministic timing.
+- **OPC UA** is the standard for structured machine data between PLCs, robots and higher systems.
+- **MQTT** is a lightweight publish/subscribe protocol for telemetry to dashboards and the cloud.
+- Robot vendors add their own interfaces; ROS 2 bridges many of them.
+
+## One carton's journey
+
+1. The WMS releases an order; the WES assigns it to a wave and a pallet station.
+2. The WCS routes its cartons along conveyors; scanners and a check-weigher record each one.
+3. The vision system measures the carton; the planner chooses its spot.
+4. The robot places it; vacuum and position feedback confirm success.
+5. When the pallet is complete, it is wrapped, labelled and its data flows back up to the WMS.
+
+<Callout title="Digital twins">
+A digital twin is a live software model of the cell, fed by these sensors. Simulators like this one
+are used to test plans and layouts before touching real hardware.
+</Callout>

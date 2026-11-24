@@ -1,0 +1,37 @@
+# 業界標準のツール
+
+エンジンは、プロのロボティクス向け C++ コードベースで見られるのと同じツールで作られています。
+
+| ツール | 役割 | このプロジェクトでの使い方 |
+|---|---|---|
+| **CMake** | あらゆるプラットフォームとコンパイラ向けにビルドを生成 | `CMakeLists.txt` と、`release`・`debug-asan`・`wasm` を持つ `CMakePresets.json` |
+| **vcpkg** | C++ のパッケージマネージャー | ベースラインのコミットに固定した `vcpkg.json` マニフェスト。どのマシンでも同じバージョンになる |
+| **GoogleTest** | ユニットテストのフレームワーク | 300個のランダムシードにわたるパラメータ化プロパティテストを含む330件 |
+| **Google Benchmark** | 統計付きのマイクロベンチマーク | `micro_bench` がルール判定と計画全体を計測し、Big-O 曲線を当てはめる |
+| **Eigen** | 線形代数（ベクトル、行列、変換、クォータニオン） | `Isometry3d` によるロボット座標系での姿勢 |
+| **fmt** | 型安全なフォーマット（C++20 の `std::format` の元） | CLI の出力とサマリー |
+| **nlohmann/json** | モダン C++ のための JSON | 計画の出力。`ordered_json` でキーを読みやすい順に保つ |
+| **CLI11** | コマンドライン解析 | `palletize`、`wes_sim`、`bench` のオプション検証と `--help` |
+| **ROS 2 + colcon** | ロボット用ミドルウェアとビルドツール | `ros2/` のパッケージを Docker でビルド・テスト |
+| **サニタイザー** | 実行時のバグ検出 | ASan + UBSan のプリセットを CI で実行 |
+| **clang-format / clang-tidy** | スタイルと静的解析 | `core/` の設定ファイル |
+| **Docker** | 再現可能な環境 | ROS 2 Jazzy のワークスペースイメージ |
+| **GitHub Actions** | CI/CD | ビルド、テスト、サニタイザー、ROS テスト、Web テスト、デプロイ |
+| **Playwright** | ブラウザの E2E テスト | 英語と日本語のブラウザ、デスクトップとスマートフォン |
+
+## なぜ Boost を使わないのか
+
+Boost は巨大で高品質なライブラリ群で、C++ の「キッチンシンク」と呼ばれることもあります。その優れた部分の多くはすでに標準ライブラリに入っています（`std::optional`、`std::variant`、`std::filesystem`、スマートポインター）。このプロジェクトは残りを必要とせず、使わないことで WebAssembly のビルドも小さく保てます。Boost.Geometry で凸包を計算することもできますが、モノトーンチェーン法を自分で書くことこそが学習プロジェクトの目的です。
+
+## プリセットの実際
+
+```bash
+export VCPKG_ROOT=~/vcpkg
+cmake --preset release          # vcpkg が fmt、Eigen、GoogleTest などを入れてから CMake が構成
+cmake --build --preset release  # Ninja がライブラリ、アプリ、テストをビルド
+ctest --preset release          # 330件のテストが1秒未満で完了
+```
+
+<Callout title="なぜバージョンを固定するのか">
+`builtin-baseline` を固定したマニフェストなら、CI も自分のノート PC も同僚のマシンも、まったく同じバージョンの依存関係でビルドします。「自分の環境では動く」というバグの多くがなくなります。
+</Callout>

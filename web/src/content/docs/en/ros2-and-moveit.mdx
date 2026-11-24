@@ -1,0 +1,59 @@
+# ROS 2 and MoveIt
+
+**ROS 2** (Robot Operating System 2) is not an operating system: it is the standard middleware and
+toolset for robot software. Programs are split into **nodes** that talk over a publish/subscribe
+network called **DDS**.
+
+## Core ideas
+
+| Concept | What it is | In this project |
+|---|---|---|
+| Node | A process with one job | `palletizer_planner` |
+| Topic | A stream of messages, many-to-many | `/pallet_markers` (visualization) |
+| Service | A request/response call | `/plan_pallet` |
+| Action | A long goal with feedback and cancel | how a real "place this carton" command would run |
+| Parameter | Runtime configuration | algorithm defaults |
+| QoS | Delivery guarantees | markers use *transient local*, so late joiners still get the last plan |
+| TF2 | The tree of frames and their transforms | `world → robot_base → pallet` |
+
+## The palletizer package
+
+`ros2/palletizer_interfaces` defines the service:
+
+```text
+string algorithm "ep"
+uint32 box_count 40
+uint32 seed 42
+float64 min_support 0.75
+---
+bool success
+geometry_msgs/Pose[] place_poses
+geometry_msgs/Pose[] approach_poses
+...
+```
+
+`ros2/palletizer_ros` wraps the C++ engine as a node: it answers `/plan_pallet`, publishes one cube
+marker per carton, and broadcasts static TF frames. It is built with **colcon** inside the official
+ROS 2 Jazzy Docker image and tested with **gtest** and **launch_testing**, which starts the real node
+and calls the service like any client would.
+
+```bash
+scripts/ros.sh build   # colcon build in Docker
+scripts/ros.sh test    # unit + launch tests
+scripts/ros.sh call    # → success=True placed=38 offered=40 fill_ratio=0.7064
+```
+
+## Where MoveIt fits
+
+**MoveIt** is ROS's motion-planning framework. Given a robot model (URDF + SRDF) and a **planning
+scene** (the pallet and already-placed cartons as collision objects), it computes collision-free
+joint trajectories. Our service already returns what MoveIt needs:
+
+- `approach_poses` and `place_poses` as `geometry_msgs/Pose` in the robot base frame;
+- the final descent is a straight vertical line, ideal for MoveIt's **Cartesian path** planner;
+- each placed carton becomes a collision object for the next plan.
+
+<Interview>
+Explain the split clearly: **our planner decides where** (a combinatorial problem), **MoveIt decides
+how the arm gets there** (a continuous geometric problem). Production systems keep these layers separate.
+</Interview>
