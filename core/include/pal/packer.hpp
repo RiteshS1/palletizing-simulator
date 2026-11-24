@@ -13,6 +13,9 @@ struct PackResult {
     std::string algorithm;
     PalletState pallet;          // placements() is the step-by-step plan
     std::vector<Box> unplaced;
+    // Extreme points only: the candidate corner points the algorithm considered right before
+    // each placement (candidates[i] belongs to placements()[i]). Lets the viewer show its "thinking".
+    std::vector<std::vector<Vec3>> candidates;
 };
 
 // Phase 3: sort tallest first, then fill the deck in rows (shelves), pass after pass ("layers").

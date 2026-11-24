@@ -59,6 +59,11 @@ Json planToJson(const PackResult& r, const Metrics& m, const std::vector<Box>& o
             {"placePose", poseToJson(poses.place)},
             {"approachPose", poseToJson(poses.approach)},
         });
+        if (static_cast<size_t>(step) <= r.candidates.size()) {
+            Json pts = Json::array();
+            for (const Vec3& v : r.candidates[static_cast<size_t>(step - 1)]) pts.push_back({v.x, v.y, v.z});
+            placements.back()["candidates"] = std::move(pts);
+        }
     }
     j["placements"] = std::move(placements);
 

@@ -85,11 +85,11 @@ TEST(Wes, WavesFillPalletsBetter) {
     for (uint32_t seed = 1; seed <= 6; ++seed) {
         auto orders = generateOrders(30, seed);
         for (const auto& p : runWes(orders, policy(WesPolicy::OrderByOrder)).pallets) {
-            fillOrder += computeMetrics(PackResult{"", p.state, {}}, 0).fillOfMax;
+            fillOrder += computeMetrics(PackResult{"", p.state, {}, {}}, 0).fillOfMax;
             ++nOrder;
         }
         for (const auto& p : runWes(orders, policy(WesPolicy::Waves)).pallets) {
-            fillWaves += computeMetrics(PackResult{"", p.state, {}}, 0).fillOfMax;
+            fillWaves += computeMetrics(PackResult{"", p.state, {}, {}}, 0).fillOfMax;
             ++nWaves;
         }
     }

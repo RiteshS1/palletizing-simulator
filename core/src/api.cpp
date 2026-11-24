@@ -69,7 +69,7 @@ RunOutput runWesSim(const WesRequest& req) {
         late += o.late;
     }
     double fillSum = 0;
-    for (const PalletRecord& p : r.pallets) fillSum += computeMetrics(PackResult{"", p.state, {}}, 0).fillOfMax;
+    for (const PalletRecord& p : r.pallets) fillSum += computeMetrics(PackResult{"", p.state, {}, {}}, 0).fillOfMax;
     const double avgFill = r.pallets.empty() ? 0 : fillSum / double(r.pallets.size());
     const double perHour = r.makespan > 0 ? r.totalSteps / (r.makespan / 3600.0) : 0;
 
@@ -104,7 +104,7 @@ RunOutput runWesSim(const WesRequest& req) {
 
     Json pallets = Json::array();
     for (const PalletRecord& p : r.pallets) {
-        const Metrics pm = computeMetrics(PackResult{"", p.state, {}}, 0);
+        const Metrics pm = computeMetrics(PackResult{"", p.state, {}, {}}, 0);
         Json steps = Json::array();
         for (const StepRecord& s : p.steps) steps.push_back(stepToJson(s));
         pallets.push_back({{"id", p.id},

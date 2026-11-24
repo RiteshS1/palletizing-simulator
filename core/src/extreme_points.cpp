@@ -145,6 +145,7 @@ PackResult runOnce(const std::vector<Box>& order, const PalletSpec& spec, const 
     PalletState pallet(spec, rules);
     PointSet points{Vec3{0, 0, 0}};
     std::vector<Box> unplaced;
+    std::vector<std::vector<Vec3>> candidates;
 
     for (const Box& b : order) {
         Placement best;
@@ -152,10 +153,11 @@ PackResult runOnce(const std::vector<Box>& order, const PalletSpec& spec, const 
             unplaced.push_back(b);
             continue;
         }
+        candidates.emplace_back(points.begin(), points.end());
         pallet.tryPlace(best);
         updatePoints(points, pallet, best);
     }
-    return PackResult{"extreme_points", pallet, unplaced};
+    return PackResult{"extreme_points", pallet, unplaced, std::move(candidates)};
 }
 
 int64_t placedVolume(const PalletState& p) {

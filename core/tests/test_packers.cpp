@@ -84,4 +84,12 @@ TEST(PlanJson, HasPlanAndPoses) {
     ASSERT_EQ(j["placements"].size(), r.pallet.placements().size());
     EXPECT_EQ(j["placements"][0]["placePose"]["orientation"].size(), 4u);  // quaternion x, y, z, w
     EXPECT_EQ(j.begin().key(), "algorithm");  // ordered_json keeps insertion order
+    // Extreme points exports the candidate points it considered; the chosen spot is one of them.
+    const auto& first = j["placements"][0];
+    ASSERT_TRUE(first.contains("candidates"));
+    bool chosenIsCandidate = false;
+    for (const auto& c : first["candidates"]) {
+        chosenIsCandidate = chosenIsCandidate || (c[0] == first["x"] && c[1] == first["y"] && c[2] == first["z"]);
+    }
+    EXPECT_TRUE(chosenIsCandidate);
 }

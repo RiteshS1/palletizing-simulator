@@ -97,7 +97,7 @@ PackResult packGreedyLayer(const std::vector<Box>& boxes, const PalletSpec& spec
         if (notPlaced.size() == remaining.size()) break;  // a whole pass placed nothing: done
         remaining.swap(notPlaced);  // O(1): swaps internal pointers, no copying
     }
-    return PackResult{"greedy_layer", pallet, remaining};
+    return PackResult{"greedy_layer", pallet, remaining, {}};
 }
 
 }  // namespace pal
