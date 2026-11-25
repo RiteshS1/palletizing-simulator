@@ -6,8 +6,6 @@ web/dist/
 .DS_Store
 .vscode/
 .idea/
-web/public/data/
-web/public/wasm/
 web/test-results/
 web/playwright-report/
 

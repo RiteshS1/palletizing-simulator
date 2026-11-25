@@ -1,8 +1,11 @@
 # CI/CD for the whole project.
 #
 #   core (Linux + macOS) ─┐
-#   sanitizers (ASan)  ───┼─▶ web (engine → WASM → lint → types → Vitest → build → Playwright) ─▶ deploy (Vercel, main only)
+#   sanitizers (ASan)  ───┼─▶ web (engine → artifact check → lint → types → Vitest → build → Playwright)
 #   ros2 (Docker)      ───┘
+#
+# Deployment: Vercel's Git integration builds web/ on every push (preview per PR, production on main),
+# using the committed engine output in web/public/{data,wasm}. CI proves that output is up to date.
 name: CI/CD
 
 on:
@@ -108,6 +111,8 @@ jobs:
       - run: npm ci
       - name: Engine (C++ plans + WebAssembly)
         run: npm run engine
+      - name: Committed engine output matches the C++ source
+        run: node scripts/check-engine-artifacts.mjs
       - run: npm run lint
       - run: npm run typecheck
       - name: Unit tests (Vitest)
@@ -117,63 +122,9 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: End-to-end tests (Playwright, English + Japanese, desktop + phone, axe)
         run: npm run test:e2e
-      - name: Keep the engine output for the deploy job
-        uses: actions/upload-artifact@v7
-        with:
-          name: engine
-          path: |
-            web/public/data
-            web/public/wasm
       - name: Upload the test report if something failed
         if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
           path: web/playwright-report
-
-  # Continuous deployment to Vercel, only from main and only after every test passed.
-  # Needs the VERCEL_TOKEN secret plus the VERCEL_ORG_ID / VERCEL_PROJECT_ID variables.
-  deploy:
-    needs: web
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: ${{ steps.deploy.outputs.url }}
-    env:
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
-    defaults:
-      run:
-        working-directory: web
-    steps:
-      - name: Skip when Vercel is not configured yet
-        id: check
-        working-directory: .
-        run: |
-          if [ -z "$VERCEL_TOKEN" ] || [ -z "$VERCEL_PROJECT_ID" ]; then echo "ready=false" >> "$GITHUB_OUTPUT"; echo "::notice::Vercel secrets not set; skipping deploy";
-          else echo "ready=true" >> "$GITHUB_OUTPUT"; fi
-      - uses: actions/checkout@v7
-        if: steps.check.outputs.ready == 'true'
-      - uses: actions/download-artifact@v8
-        if: steps.check.outputs.ready == 'true'
-        with:
-          name: engine
-          path: web/public
-      - uses: actions/setup-node@v7
-        if: steps.check.outputs.ready == 'true'
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - if: steps.check.outputs.ready == 'true'
-        run: npm ci && npm i -g vercel@66
-      - name: Build with Vercel (prebuilt), then deploy
-        id: deploy
-        if: steps.check.outputs.ready == 'true'
-        run: |
-          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
-          vercel build --prod --token="$VERCEL_TOKEN"
-          url=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
-          echo "url=$url" >> "$GITHUB_OUTPUT"

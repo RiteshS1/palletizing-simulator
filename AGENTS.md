@@ -26,8 +26,11 @@ scripts/ros.sh build|test|run|call      # ROS 2 Jazzy workspace in Docker (colco
 # Website (in web/; read node_modules/next/dist/docs before changing Next.js code, see web/AGENTS.md)
 npm run engine | dev | lint | typecheck | test | build | test:e2e
 ```
-CI/CD: `.github/workflows/ci.yml`: core (Linux + macOS), sanitizers, ROS 2 (Docker) → web (engine,
-lint, types, Vitest, build, Playwright) → deploy to Vercel (main only, prebuilt).
+CI: `.github/workflows/ci.yml`: core (Linux + macOS), sanitizers, ROS 2 (Docker) → web (engine,
+artifact check, lint, types, Vitest, build, Playwright).
+Deploy: Vercel Git integration (project root directory `web`) on every push; production on `main`.
+**After changing `core/`, run `npm run engine` in `web/` and commit `web/public/data` + `web/public/wasm`**
+(Vercel has no C++ toolchain; CI fails if the committed plans are stale).
 
 ## Web conventions
 - Every UI string lives in `web/messages/{en,ja}.json`; every docs chapter exists in both
