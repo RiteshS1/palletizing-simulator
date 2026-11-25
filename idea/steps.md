@@ -81,3 +81,20 @@ Tick the box when a phase is done.
   rate limiting, floating streaming widget
 - [x] **Phase 16: Quality and delivery**: Vitest, Playwright (en/ja, desktop/phone, axe),
   CI/CD to Vercel
+
+## Future enhancements (not started)
+Each one: C++ in `core/` with GoogleTest coverage, `npm run engine` + commit the artifacts, a docs
+chapter in en + ja, a simulator mode or 3D island, then a teaching recap.
+
+- [ ] **Online packing with a lookahead buffer**: boxes arrive on a conveyor and the planner sees
+  only the next k (3–5). Beam search over the buffer picks which visible box to place next.
+  Benchmark fill rate for k = 1, 3, 5 and all boxes known (offline); chart it on the site.
+- [ ] **Robot-side checks in the planner**: reject placements where the gripper (cups + mast)
+  would collide with cartons already on the pallet on its approach; estimate cycle time per box
+  from travel distance and speed limits; report total cycle time with the plan.
+- [ ] **Single-SKU layer patterns in the engine**: a C++ pattern generator (column, interlock,
+  pinwheel) for one box size, so the Layer patterns chapter is driven by engine output instead of
+  front-end-only geometry.
+
+Also open: a 60-second demo GIF in the README, a native-speaker review of the Japanese text,
+retire or redirect the old v1 GitHub Pages site.
