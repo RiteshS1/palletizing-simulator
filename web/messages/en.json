@@ -20,7 +20,6 @@
     "heroLead": "Learn robotics with C++ by building the brain of a palletizing robot: where every carton goes, why it stays up, and how a warehouse decides what ships next.",
     "ctaStart": "Get started",
     "ctaSimulator": "Open the simulator",
-    "scrollHint": "Scroll to build the pallet",
     "fill": "filled",
     "boxes": "boxes",
     "hoverHint": "Point at a carton to inspect it",
@@ -214,7 +213,9 @@
     "builtWith": "An independent learning project. C++20 · ROS 2 · WebAssembly · three.js · Next.js.",
     "photos": "Photos from Unsplash by {names}.",
     "assets": "Icons: Simple Icons (CC0). Lighting: Poly Haven (CC0).",
-    "source": "Source"
+    "source": "Source",
+    "madeWith": "Made with ramen and chai by <name>Ritesh</name>",
+    "backToTop": "Back to top"
   },
   "notFound": {
     "title": "This page fell off the pallet.",

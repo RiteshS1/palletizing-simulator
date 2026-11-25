@@ -16,6 +16,7 @@ const eslintConfig = defineConfig([
     "public/wasm/**",
     "public/data/**",
     "src/generated/**",
+    ".vercel/**",
   ]),
 ]);
 

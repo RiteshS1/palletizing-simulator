@@ -15,6 +15,7 @@
   --color-peach-soft: #fbe3d6;
   --color-kraft: #c9a678;
   --color-probe: #2b59c3;
+  --color-signal-ink: #b23a0c; /* orange for text on paper: 5.3:1 contrast */
   --color-night: #111214;
 
   --font-display: var(--font-archivo), var(--font-noto-jp), ui-sans-serif, system-ui, sans-serif;

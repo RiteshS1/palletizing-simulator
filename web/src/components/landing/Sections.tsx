@@ -11,6 +11,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import Image from "next/image";
 import { useRef, type ReactNode } from "react";
 import { Link } from "@/i18n/navigation";
+import { ArrowRight } from "@/components/ui/ArrowRight";
 import { DOCS } from "@/lib/docs";
 import { usePlans } from "@/lib/usePlans";
 
@@ -130,7 +131,10 @@ export function CompareSection() {
       ]
     : [];
   return (
-    <section ref={ref} className="bg-ink text-paper">
+    <section ref={ref} className="relative bg-ink text-paper">
+      {/* soft dissolve from the light page into the dark band and back out again */}
+      <div className="pointer-events-none absolute inset-x-0 -top-24 h-24 bg-gradient-to-b from-paper/0 to-ink" aria-hidden />
+      <div className="pointer-events-none absolute inset-x-0 -bottom-24 h-24 bg-gradient-to-b from-ink to-paper/0" aria-hidden />
       <div className="mx-auto max-w-[1440px] px-4 py-28 sm:px-8 sm:py-36">
         <div className="max-w-[46rem]" data-reveal>
           <h2 className="font-display text-[clamp(2.1rem,4.6vw,4rem)] font-semibold leading-[0.98] tracking-[-0.03em] [font-stretch:112%]">{t("compareTitle")}</h2>
@@ -395,8 +399,9 @@ export function FinalSection() {
           <h2 className="font-display text-[clamp(2.6rem,6vw,5.4rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-ink [font-stretch:115%]">{t("finalTitle")}</h2>
           <p className="mt-6 text-lg leading-relaxed text-ink-2">{t("finalLead")}</p>
           <div className="mt-10 flex flex-wrap gap-3">
-            <Link href="/docs" className="rounded-xs bg-signal px-6 py-3.5 text-[15px] font-medium text-ink transition-colors hover:bg-[#ff6f3c]">
+            <Link href="/docs" className="group inline-flex items-center gap-2.5 rounded-xs bg-signal px-6 py-3.5 text-[15px] font-medium text-ink transition-colors hover:bg-[#ff6f3c]">
               {t("ctaStart")}
+              <ArrowRight />
             </Link>
             <Link href="/simulator/compare" className="rounded-xs bg-paper px-6 py-3.5 text-[15px] font-medium text-ink ring-1 ring-ink/20 hover:ring-ink/50">
               {t("ctaSimulator")}

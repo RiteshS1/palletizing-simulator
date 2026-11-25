@@ -13,6 +13,7 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const lenis = new Lenis({ lerp: 0.1, smoothWheel: true });
+    (window as Window & { __lenis?: Lenis }).__lenis = lenis; // used by the back-to-top button
     lenis.on("scroll", ScrollTrigger.update);
     const tick = (time: number) => lenis.raf(time * 1000);
     gsap.ticker.add(tick);
@@ -20,6 +21,7 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
     return () => {
       gsap.ticker.remove(tick);
       lenis.destroy();
+      delete (window as Window & { __lenis?: Lenis }).__lenis;
     };
   }, []);
   return <>{children}</>;

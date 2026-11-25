@@ -20,7 +20,6 @@
     "heroLead": "パレタイジングロボットの「頭脳」をC++で作りながら、ロボティクスを学びます。どの箱をどこに置くか、なぜ崩れないのか、倉庫は次に何を出荷するのか。",
     "ctaStart": "はじめる",
     "ctaSimulator": "シミュレーターを開く",
-    "scrollHint": "スクロールしてパレットを積み上げる",
     "fill": "積載率",
     "boxes": "箱",
     "hoverHint": "箱にカーソルを合わせると詳細を表示",
@@ -214,7 +213,9 @@
     "builtWith": "独立した学習プロジェクト。C++20 · ROS 2 · WebAssembly · three.js · Next.js",
     "photos": "写真：Unsplash（{names}）",
     "assets": "アイコン：Simple Icons（CC0）。ライティング：Poly Haven（CC0）。",
-    "source": "ソース"
+    "source": "ソース",
+    "madeWith": "ラーメンとチャイを片手に <name>Ritesh</name> が制作",
+    "backToTop": "トップへ戻る"
   },
   "notFound": {
     "title": "このページはパレットから落ちてしまいました。",

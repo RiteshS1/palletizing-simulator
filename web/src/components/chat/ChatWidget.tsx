@@ -64,6 +64,9 @@ export function ChatWidget() {
             key="panel"
             role="dialog"
             aria-label={t("title")}
+            // Lenis (landing page smooth scroll) captures wheel events page-wide; this opts the
+            // panel out so the conversation scrolls with the wheel/trackpad like any chat box.
+            data-lenis-prevent
             initial={reduce ? false : { opacity: 0, scale: 0.92, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.94, y: 12 }}
@@ -89,7 +92,7 @@ export function ChatWidget() {
               </button>
             </header>
 
-            <div ref={listRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-4 text-[14px] leading-relaxed" aria-live="polite">
+            <div ref={listRef} className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 text-[14px] leading-relaxed" aria-live="polite" data-lenis-prevent>
               {messages.length === 0 && (
                 <div className="space-y-2">
                   {suggestions.map((s) => (

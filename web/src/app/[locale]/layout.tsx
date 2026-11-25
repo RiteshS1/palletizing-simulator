@@ -5,6 +5,7 @@ import { getMessages, getTranslations, setRequestLocale } from "next-intl/server
 import { ChatWidget } from "@/components/chat/ChatWidget";
 import { routing } from "@/i18n/routing";
 import { archivo, geist, geistMono, notoJp } from "@/lib/fonts";
+import { pageMetadata } from "@/lib/seo";
 import { SITE } from "@/lib/site";
 import "../globals.css";
 
@@ -17,11 +18,12 @@ export async function generateMetadata({ params }: LayoutProps<"/[locale]">): Pr
   const t = await getTranslations({ locale, namespace: "meta" });
   return {
     metadataBase: new URL(SITE.url),
+    applicationName: SITE.name,
+    authors: [{ name: SITE.author.name, url: SITE.author.url }],
+    creator: SITE.author.name,
+    keywords: ["robotics", "C++", "palletizing", "ROS 2", "MoveIt", "Eigen", "WebAssembly", "bin packing", "algorithms", "warehouse automation", "ロボティクス", "パレタイジング"],
+    ...pageMetadata({ locale, path: "", title: t("title"), description: t("description"), absoluteTitle: true }),
     title: { default: t("title"), template: `%s · ${SITE.name}` },
-    description: t("description"),
-    alternates: { languages: { en: "/en", ja: "/ja", "x-default": "/en" } },
-    openGraph: { title: t("title"), description: t("description"), siteName: SITE.name, locale, type: "website" },
-    twitter: { card: "summary_large_image", title: t("title"), description: t("description") },
   };
 }
 
