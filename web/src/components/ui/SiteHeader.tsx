@@ -8,7 +8,7 @@ export async function SiteHeader({ variant = "solid" }: { variant?: "solid" | "o
   const t = await getTranslations("nav");
   return (
     <header
-      className={`${variant === "overlay" ? "absolute inset-x-0 top-0 z-30" : "sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur-md"}`}
+      className={`${variant === "overlay" ? "absolute inset-x-0 top-0 z-30 bg-gradient-to-b from-paper via-paper/80 to-paper/0 pb-4" : "sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur-md"}`}
     >
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-3 focus:bg-ink focus:px-3 focus:py-2 focus:text-paper">
         {t("skip")}

@@ -171,7 +171,7 @@ export function AabbScene() {
         <boxGeometry args={[0.4, 0.4, 0.4]} />
         <meshStandardMaterial ref={mat} color="#c9a678" roughness={0.85} transparent opacity={0.9} />
       </mesh>
-      <Html position={[0, 0.85, 0]} center className="pointer-events-none">
+      <Html position={[0, 0.02, 0.5]} center className="pointer-events-none">
         <span className={`rounded-xs px-2 py-1 text-xs font-semibold ${state === "overlap" ? "bg-signal text-ink" : "bg-ink text-paper"}`}>
           {state === "overlap" ? t("overlap") : t("noOverlap")}
         </span>
@@ -235,7 +235,7 @@ export function SupportScene() {
         </mesh>
         <Line points={[[0, 0, 0], [0, -0.2, 0]]} color="#ff5a1f" lineWidth={2} />
       </group>
-      <Html position={[0, 1.2, 0]} center className="pointer-events-none">
+      <Html position={[0, 0.02, 0.5]} center className="pointer-events-none">
         <span className={`rounded-xs px-2 py-1 text-xs font-semibold ${tips ? "bg-signal text-ink" : "bg-probe text-white"}`}>{t("support")}</span>
       </Html>
     </group>

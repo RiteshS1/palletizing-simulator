@@ -1,8 +1,8 @@
 // The documentation table of contents. Titles live in messages/*.json (docs.pages.<slug>);
 // content lives in src/content/docs/<locale>/<slug>.mdx. `scene` picks the live 3D island.
-export type SceneKind = "hero" | "plan-ep" | "plan-greedy" | "compare" | "orders" | "frames" | "aabb" | "support";
+export type SceneKind = "hero" | "plan-ep" | "plan-greedy" | "compare" | "orders" | "frames" | "aabb" | "support" | "scan" | "suction" | "depal" | "patterns";
 
-export type DocGroup = "start" | "robotics" | "engineering" | "algorithms";
+export type DocGroup = "start" | "robotics" | "applications" | "engineering" | "algorithms";
 
 export interface DocEntry {
   slug: string;
@@ -19,6 +19,10 @@ export const DOCS: DocEntry[] = [
   { slug: "ros2-and-moveit", group: "robotics", scene: "frames" },
   { slug: "iot-in-the-warehouse", group: "robotics", scene: "orders", simulator: "orders" },
   { slug: "real-world-complexity", group: "robotics", scene: "support" },
+  { slug: "perception-and-vision", group: "applications", scene: "scan" },
+  { slug: "grippers-and-suction", group: "applications", scene: "suction" },
+  { slug: "layer-patterns", group: "applications", scene: "patterns" },
+  { slug: "depalletizing", group: "applications", scene: "depal" },
   { slug: "why-cpp", group: "engineering", scene: "aabb" },
   { slug: "industry-standards", group: "engineering", scene: "plan-ep" },
   { slug: "webassembly", group: "engineering", scene: "plan-ep", simulator: "extreme-points" },
@@ -33,7 +37,7 @@ export const DOCS: DocEntry[] = [
   { slug: "complexity", group: "algorithms", scene: "plan-ep" },
 ];
 
-export const DOC_GROUPS: DocGroup[] = ["start", "robotics", "engineering", "algorithms"];
+export const DOC_GROUPS: DocGroup[] = ["start", "robotics", "applications", "engineering", "algorithms"];
 
 export function getDoc(slug: string): DocEntry | undefined {
   return DOCS.find((d) => d.slug === slug);

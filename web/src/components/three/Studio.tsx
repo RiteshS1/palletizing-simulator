@@ -3,9 +3,9 @@
 // The stage every 3D view shares: renderer settings, HDR environment lighting, a key light with
 // soft shadows, a floor that fades into the background, orbit controls and optional ambient occlusion.
 import { Environment, OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useThree } from "@react-three/fiber";
 import { EffectComposer, N8AO, SMAA } from "@react-three/postprocessing";
-import { Suspense, type ReactNode } from "react";
+import { Suspense, useEffect, type ReactNode } from "react";
 import * as THREE from "three";
 
 export interface StudioProps {
@@ -23,6 +23,23 @@ export interface StudioProps {
 }
 
 const HDRI = { studio: "/hdri/studio_small_09.hdr", warehouse: "/hdri/empty_warehouse_01.hdr" };
+
+// Portrait or narrow canvases see less horizontally (the field of view is vertical), so pull the camera
+// back along its view direction until the scene fits again. Runs only when the canvas is resized.
+// Depends on the numbers, not the array objects: callers often pass inline arrays, and re-running on
+// every render would reset the camera (and undo the user's orbiting) each time the plan advances.
+function ResponsiveCamera({ base, target }: { base: [number, number, number]; target: [number, number, number] }) {
+  const { camera, size } = useThree();
+  const [bx, by, bz] = base;
+  const [tx, ty, tz] = target;
+  useEffect(() => {
+    const aspect = size.width / Math.max(1, size.height);
+    const k = aspect < 1.25 ? Math.pow(1.25 / aspect, 0.75) : 1;
+    camera.position.set(tx + (bx - tx) * k, ty + (by - ty) * k, tz + (bz - tz) * k);
+    camera.lookAt(tx, ty, tz);
+  }, [camera, size.width, size.height, bx, by, bz, tx, ty, tz]);
+  return null;
+}
 
 export function Studio({
   children,
@@ -49,6 +66,7 @@ export function Studio({
         onCreated?.(state);
       }}
     >
+      <ResponsiveCamera base={camera} target={target} />
       <color attach="background" args={[background]} />
       <fog attach="fog" args={[background, 9, 22]} />
       <Suspense fallback={null}>

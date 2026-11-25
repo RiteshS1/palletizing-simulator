@@ -54,11 +54,20 @@
     "stackTitle": "Built the way industry builds.",
     "stackLead": "C++20 with CMake, vcpkg and GoogleTest. Eigen for poses. A real ROS 2 package. The same engine compiled to WebAssembly runs in this page.",
     "learnTitle": "Learn it in order.",
-    "learnLead": "Nineteen short chapters, each with a live 3D model next to the text.",
+    "learnLead": "Twenty-three short chapters, each with a live 3D model next to the text.",
     "inspiredTitle": "Made in the spirit of Japanese robotics.",
     "inspiredBody": "This project takes its inspiration from industry leaders in Japanese warehouse robotics, whose intelligent palletizing and picking systems run real factories. Everything here is an independent learning project.",
     "finalTitle": "Start with one box.",
-    "finalLead": "No account needed. Read, play with the simulator, and ask the assistant anything along the way."
+    "finalLead": "No account needed. Read, play with the simulator, and ask the assistant anything along the way.",
+    "appsTitle": "What a palletizing cell really does.",
+    "appsLead": "Placing cartons is only one part. A real cell has to see them, grip them, stack them in patterns that survive the truck, and take pallets apart again on the other end.",
+    "apps": {
+      "perception-and-vision": "3D cameras turn a stack into a point cloud; the robot finds each carton's top face and pose in it.",
+      "grippers-and-suction": "Vacuum cups hold a carton by pressure difference. How much force you get, and why it fails on porous boxes.",
+      "layer-patterns": "Column stacks are tidy but weak. Interlocked layers tie the stack together like bricks in a wall.",
+      "depalletizing": "The same robot, in reverse: unstack mixed pallets top-down without seeing the cartons' size in advance."
+    },
+    "readChapter": "Read the chapter"
   },
   "docs": {
     "title": "Documentation",
@@ -72,7 +81,8 @@
       "start": "Start here",
       "robotics": "Robotics foundations",
       "engineering": "Engineering",
-      "algorithms": "Algorithms"
+      "algorithms": "Algorithms",
+      "applications": "Applications"
     },
     "pages": {
       "overview": "Overview",
@@ -93,7 +103,11 @@
       "extreme-points": "Extreme points",
       "side-by-side": "Side by side",
       "orders": "Orders and waves",
-      "complexity": "Complexity cheat sheet"
+      "complexity": "Complexity cheat sheet",
+      "perception-and-vision": "Perception and vision",
+      "grippers-and-suction": "Grippers and suction",
+      "layer-patterns": "Layer patterns",
+      "depalletizing": "Depalletizing"
     }
   },
   "sim": {
@@ -187,7 +201,15 @@
     "overlap": "overlap",
     "noOverlap": "no overlap",
     "heavy": "heavy",
-    "light": "light"
+    "light": "light",
+    "scanning": "scanning",
+    "pointCloud": "point cloud",
+    "vacuumOn": "vacuum on",
+    "release": "release",
+    "approach": "approach",
+    "unstacking": "unstacking, top first",
+    "column": "Column stack",
+    "interlocked": "Interlocked"
   },
   "chat": {
     "open": "Ask the assistant",

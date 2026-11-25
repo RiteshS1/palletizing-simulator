@@ -198,7 +198,7 @@ export function ChatWidget() {
         aria-label={open ? t("close") : t("open")}
         whileHover={reduce ? undefined : { scale: 1.05 }}
         whileTap={reduce ? undefined : { scale: 0.95 }}
-        className="group relative flex h-14 items-center gap-2.5 rounded-full bg-ink pl-4 pr-5 text-paper shadow-[0_12px_30px_-8px_rgba(20,20,20,0.5)]"
+        className="group relative flex h-14 items-center gap-2.5 rounded-full bg-ink pl-4 pr-5 text-paper shadow-[0_12px_30px_-8px_rgba(20,20,20,0.5)] ring-1 ring-white/20"
       >
         <span className="grid h-7 w-7 place-items-center rounded-full bg-signal">
           {open ? (

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Hero } from "@/components/landing/Hero";
-import { CompareSection, FinalSection, InspiredSection, LearnSection, OrdersSection, RealWorldSection, RulesSection, StackSection } from "@/components/landing/Sections";
+import { ApplicationsSection, CompareSection, FinalSection, InspiredSection, LearnSection, OrdersSection, RealWorldSection, RulesSection, StackSection } from "@/components/landing/Sections";
 import { SmoothScroll } from "@/components/landing/SmoothScroll";
 import { SiteFooter } from "@/components/ui/SiteFooter";
 import { SiteHeader } from "@/components/ui/SiteHeader";
@@ -36,6 +36,7 @@ export default async function Home({ params }: PageProps<"/[locale]">) {
       <main id="main">
         <Hero />
         <RulesSection />
+        <ApplicationsSection />
         <CompareSection />
         <OrdersSection />
         <RealWorldSection />

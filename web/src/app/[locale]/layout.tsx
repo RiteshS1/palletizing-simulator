@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
@@ -8,6 +8,12 @@ import { archivo, geist, geistMono, notoJp } from "@/lib/fonts";
 import { pageMetadata } from "@/lib/seo";
 import { SITE } from "@/lib/site";
 import "../globals.css";
+
+export const viewport: Viewport = {
+  themeColor: "#f7f7f5",
+  width: "device-width",
+  initialScale: 1,
+};
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));

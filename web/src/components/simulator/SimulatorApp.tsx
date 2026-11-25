@@ -83,14 +83,14 @@ function Simulator({ mode, initial }: { mode: SimMode; initial: Plans }) {
 function ModeTabs({ mode }: { mode: SimMode }) {
   const t = useTranslations("sim");
   return (
-    <div className="flex flex-wrap items-center gap-1 border-b border-line bg-paper px-4 py-2 sm:px-6" role="tablist">
+    <div className="flex items-center gap-1 overflow-x-auto border-b border-line bg-paper px-4 py-2 [scrollbar-width:none] sm:px-6" role="tablist">
       {SIM_MODES.map((m) => (
         <Link
           key={m}
           href={`/simulator/${m}`}
           role="tab"
           aria-selected={m === mode}
-          className={`rounded-xs px-3 py-1.5 text-sm font-medium transition-colors ${m === mode ? "bg-ink text-paper" : "text-ink-2 hover:bg-paper-2 hover:text-ink"}`}
+          className={`shrink-0 whitespace-nowrap rounded-xs px-3 py-1.5 text-sm font-medium transition-colors ${m === mode ? "bg-ink text-paper" : "text-ink-2 hover:bg-paper-2 hover:text-ink"}`}
         >
           {t(`modes.${m}`)}
         </Link>

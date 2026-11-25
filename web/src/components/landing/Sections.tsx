@@ -412,3 +412,40 @@ export function FinalSection() {
     </section>
   );
 }
+
+// ---------------------------------------------------------------- applications: what a real cell does
+const APPS = [
+  { slug: "perception-and-vision", img: "/images/assembly-line.jpg" },
+  { slug: "grippers-and-suction", img: "/images/robot-hand.jpg" },
+  { slug: "layer-patterns", img: "/images/carton-rack.jpg" },
+  { slug: "depalletizing", img: "/images/warehouse-pallets.jpg" },
+] as const;
+
+export function ApplicationsSection() {
+  const t = useTranslations("home");
+  const td = useTranslations("docs");
+  const ref = useRef<HTMLElement>(null);
+  useReveal(ref);
+  return (
+    <section ref={ref} className="mx-auto max-w-[1440px] px-4 pb-28 sm:px-8 sm:pb-36">
+      <SectionTitle title={t("appsTitle")} lead={t("appsLead")} />
+      <div className="mt-14 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {APPS.map((a) => (
+          <Link key={a.slug} href={`/docs/${a.slug}`} data-reveal className="group flex flex-col overflow-hidden bg-paper ring-1 ring-line transition-shadow hover:shadow-[0_18px_40px_-18px_rgba(20,20,20,0.35)] hover:ring-ink/25">
+            <div className="relative aspect-[4/3] overflow-hidden bg-paper-3">
+              <Image src={a.img} alt="" fill sizes="(min-width: 1280px) 25vw, (min-width: 640px) 50vw, 100vw" className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04] motion-reduce:transition-none" />
+            </div>
+            <div className="flex flex-1 flex-col p-6">
+              <h3 className="font-display text-xl font-semibold text-ink">{td(`pages.${a.slug}`)}</h3>
+              <p className="mt-2 flex-1 leading-relaxed text-ink-2">{t(`apps.${a.slug}`)}</p>
+              <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-ink">
+                {t("readChapter")}
+                <ArrowRight />
+              </span>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}

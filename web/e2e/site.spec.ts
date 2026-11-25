@@ -181,3 +181,65 @@ test("no sideways scrolling on any screen", async ({ page }) => {
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth), path).toBeLessThanOrEqual(0);
   }
 });
+
+// ---------------------------------------------------------------- landing behaviour added later
+test("the hero builds the pallet on its own, without scrolling", async ({ page }) => {
+  await page.goto("/en");
+  const eyebrow = page.locator("#hero-title").locator("xpath=preceding-sibling::p[1]");
+  await expect(eyebrow).toContainText(/Box \d+ of 38/);
+  const first = Number((await eyebrow.textContent())!.match(/Box (\d+)/)![1]);
+  await expect.poll(async () => Number((await eyebrow.textContent())!.match(/Box (\d+)/)![1]), { timeout: 15_000 }).toBeGreaterThan(first);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
+test("footer: author credit and back to top", async ({ page }) => {
+  await page.goto("/en");
+  const credit = page.getByRole("link", { name: "Ritesh", exact: true });
+  await expect(credit).toHaveAttribute("href", "https://riteshh.in");
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.getByRole("button", { name: "Back to top" }).click();
+  await expect.poll(() => page.evaluate(() => window.scrollY), { timeout: 5_000 }).toBeLessThan(5);
+});
+
+test("assistant: the mouse wheel scrolls the conversation, not the page", async ({ page, isMobile }) => {
+  test.skip(isMobile, "wheel input is a desktop behaviour");
+  await page.route("**/api/chat", async (route) => {
+    const long = Array.from({ length: 40 }, (_, i) => `Line ${i + 1} of a long answer about extreme points.`).join("\n\n");
+    const events = [{ type: "start" }, { type: "text-start", id: "t" }, { type: "text-delta", id: "t", delta: long }, { type: "text-end", id: "t" }, { type: "finish" }];
+    await route.fulfill({ status: 200, headers: { "content-type": "text/event-stream", "x-vercel-ai-ui-message-stream": "v1" }, body: events.map((e) => `data: ${JSON.stringify(e)}\n\n`).join("") + "data: [DONE]\n\n" });
+  });
+  await page.goto("/en");
+  await page.getByRole("button", { name: "Ask the assistant" }).click();
+  const dialog = page.getByRole("dialog", { name: "PalletLab assistant" });
+  await expect(dialog).toHaveAttribute("data-lenis-prevent");
+  await dialog.getByRole("button", { name: /Explain extreme points/ }).click();
+  await expect(page.getByTestId("assistant-message")).toContainText("Line 40");
+  const list = dialog.locator('[aria-live="polite"]');
+  await list.evaluate((el) => (el.scrollTop = el.scrollHeight));
+  const before = await list.evaluate((el) => el.scrollTop);
+  const box = (await list.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.wheel(0, -600);
+  await expect.poll(() => list.evaluate((el) => el.scrollTop)).toBeLessThan(before);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
+// ---------------------------------------------------------------- SEO
+test("SEO: canonical, hreflang, link previews and structured data", async ({ page }) => {
+  await page.goto("/ja/docs/perception-and-vision");
+  await expect(page).toHaveTitle("認識とビジョン · PalletLab");
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/ja\/docs\/perception-and-vision$/);
+  await expect(page.locator('link[rel="alternate"][hreflang="en"]')).toHaveAttribute("href", /\/en\/docs\/perception-and-vision$/);
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute("content", /\/og\/ja\.jpg$/);
+  await expect(page.locator('meta[property="og:locale"]')).toHaveAttribute("content", "ja_JP");
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute("content", /.{20,}/);
+  const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').first().textContent())!);
+  expect(ld.map((x: { "@type": string }) => x["@type"])).toEqual(["TechArticle", "BreadcrumbList"]);
+});
+
+test("applications chapters render their live 3D scenes", async ({ page }) => {
+  for (const slug of ["perception-and-vision", "grippers-and-suction", "layer-patterns", "depalletizing"]) {
+    await page.goto(`/en/docs/${slug}`);
+    await expect(page.locator("figure canvas"), slug).toBeVisible();
+  }
+});

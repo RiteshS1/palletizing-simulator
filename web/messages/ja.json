@@ -54,11 +54,20 @@
     "stackTitle": "産業界と同じ作り方で。",
     "stackLead": "CMake、vcpkg、GoogleTestによるC++20。姿勢計算にはEigen。本物のROS 2パッケージ。同じエンジンをWebAssemblyにコンパイルし、このページの中で動かしています。",
     "learnTitle": "順番に学ぶ。",
-    "learnLead": "短い19の章。どの章も本文の隣でライブの3Dモデルが動きます。",
+    "learnLead": "短い23の章。どの章も本文の隣でライブの3Dモデルが動きます。",
     "inspiredTitle": "日本のロボティクスの精神で。",
     "inspiredBody": "このプロジェクトは、日本の物流ロボティクスを牽引する企業の取り組みに着想を得ています。彼らの知能化されたパレタイジングやピッキングのシステムは、実際の工場で稼働しています。本サイトは独立した学習プロジェクトです。",
     "finalTitle": "まずは、ひとつの箱から。",
-    "finalLead": "アカウントは不要です。読んで、シミュレーターで試して、気になることはいつでもアシスタントに聞いてください。"
+    "finalLead": "アカウントは不要です。読んで、シミュレーターで試して、気になることはいつでもアシスタントに聞いてください。",
+    "appsTitle": "パレタイジングセルが本当にしていること。",
+    "appsLead": "箱を置くことは仕事の一部にすぎません。実際のセルは、箱を見て、つかみ、輸送に耐えるパターンで積み、届け先ではパレットを再び崩します。",
+    "apps": {
+      "perception-and-vision": "3D カメラが積み山を点群に変え、ロボットはその中から各箱の上面と姿勢を見つけます。",
+      "grippers-and-suction": "吸着カップは圧力差で箱を保持します。どれだけの力が出るのか、なぜ通気性のある箱では失敗するのか。",
+      "layer-patterns": "柱積みは整っていますが崩れやすい。レンガ積みは、壁のレンガのように層どうしを結びつけます。",
+      "depalletizing": "同じロボットを逆向きに：サイズを事前に知らない混載パレットを、上から順に崩していきます。"
+    },
+    "readChapter": "この章を読む"
   },
   "docs": {
     "title": "ドキュメント",
@@ -72,7 +81,8 @@
       "start": "はじめに",
       "robotics": "ロボティクスの基礎",
       "engineering": "エンジニアリング",
-      "algorithms": "アルゴリズム"
+      "algorithms": "アルゴリズム",
+      "applications": "アプリケーション"
     },
     "pages": {
       "overview": "概要",
@@ -93,7 +103,11 @@
       "extreme-points": "エクストリームポイント",
       "side-by-side": "並べて比較",
       "orders": "注文とウェーブ",
-      "complexity": "計算量チートシート"
+      "complexity": "計算量チートシート",
+      "perception-and-vision": "認識とビジョン",
+      "grippers-and-suction": "グリッパーと吸着",
+      "layer-patterns": "積み付けパターン",
+      "depalletizing": "デパレタイジング"
     }
   },
   "sim": {
@@ -187,7 +201,15 @@
     "overlap": "重なり",
     "noOverlap": "重なりなし",
     "heavy": "重い",
-    "light": "軽い"
+    "light": "軽い",
+    "scanning": "スキャン中",
+    "pointCloud": "点群",
+    "vacuumOn": "真空オン",
+    "release": "リリース",
+    "approach": "アプローチ",
+    "unstacking": "上から順に荷下ろし",
+    "column": "柱積み",
+    "interlocked": "レンガ積み（交互）"
   },
   "chat": {
     "open": "アシスタントに質問",

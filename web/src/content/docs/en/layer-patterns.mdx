@@ -1,0 +1,44 @@
+# Layer patterns
+
+When the cartons are identical (single-SKU palletizing), the planner's job changes: instead of
+searching for each carton, you choose a **pattern** per layer and repeat it. The pattern decides how
+stable the pallet is in a truck.
+
+## Column stacking
+
+Every layer is identical, so cartons stand exactly on top of each other in columns.
+
+- **Strong vertically:** corners sit on corners, where corrugated board is strongest, so columns
+  carry the most weight.
+- **Weak sideways:** nothing ties the columns together. Under braking or vibration they can lean and
+  separate, like a stack of separate towers.
+
+## Interlocked stacking
+
+Alternate layers are rotated (or mirrored), so every carton bridges the seam between cartons below,
+like bricks in a wall.
+
+- **Stable sideways:** each layer ties the one below together; the stack behaves as one block.
+- **Weaker vertically:** corners no longer line up, so cartons carry load on their weaker panels.
+  Load-bearing tests show column stacks can hold far more weight than interlocked ones.
+
+The live model builds both from the same 400 × 300 × 250 mm carton: 3 × 3 per layer for the
+column stack, alternating with a rotated 4 × 2 layer for the interlocked one.
+
+## Choosing in practice
+
+- Heavy, strong cartons that ride short distances: **column** (maybe with stretch wrap and corner boards).
+- Light or tall loads that travel far: **interlock** at least the top layers.
+- Many lines mix the two: column for the bottom layers, interlock near the top.
+
+## Where search comes back
+
+Finding the pattern that fits the most cartons on a pallet is the **pallet loading problem** (2D
+packing of identical rectangles), a classic combinatorial optimisation. Practical tools enumerate
+"block" arrangements (groups of cartons in the same orientation) and pick the best: the same
+"generate candidates, filter, score" idea as our extreme-points packer.
+
+## Mixed pallets
+
+With mixed cartons there is no repeating pattern, which is why the **stacking rules** chapter matters:
+the support polygon and load-bearing checks are the mixed-case replacement for a proven pattern.

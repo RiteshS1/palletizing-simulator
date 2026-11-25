@@ -1,0 +1,48 @@
+# Perception and vision
+
+Before a robot can place a carton, it has to **see** it: where it is, how big it is, and which way
+it is turned. In mixed-case cells nothing is known in advance with millimetre accuracy, so 3D
+vision runs on every pick.
+
+## From camera to point cloud
+
+Industrial 3D cameras measure depth for every pixel:
+
+| Technology | How it measures | Good at |
+|---|---|---|
+| Structured light | projects a known pattern and triangulates its distortion | high accuracy on static scenes |
+| Stereo | matches features between two cameras | outdoor light, larger volumes |
+| Time-of-flight | times reflected light | speed, compact sensors |
+| Laser line scanning | sweeps a laser line, like the live model | very precise profiles on conveyors |
+
+Each depth pixel becomes a 3D point: the result is a **point cloud**, often a million points. The
+live model sweeps a laser plane across the pallet and colours the points by height, exactly how
+engineers look at depth data.
+
+## Finding cartons in the cloud
+
+1. **Remove what you know:** crop to the pallet volume, subtract the floor and the pallet itself.
+2. **Find planes:** carton tops are flat rectangles. **RANSAC** (random sample consensus) picks three
+   random points, fits a plane, counts how many points agree, and keeps the best plane after many
+   tries. It ignores outliers by design.
+3. **Segment:** split each plane into separate rectangles using edges and depth jumps; deep-learning
+   segmentation helps when cartons are printed or tightly packed.
+4. **Estimate the pose:** a rectangle's centre, size and yaw give the pick pose, in the camera frame.
+5. **Transform:** chain the hand-eye calibration (`T_base_camera`) to get the pose in the robot base frame.
+
+## Data structures that make it fast
+
+- **k-d trees** and **voxel grids** answer "which points are near this one?" in roughly O(log n)
+  instead of O(n), the backbone of normal estimation, clustering and downsampling.
+- **Downsampling** a million points into 1 cm voxels keeps the shape and cuts the work by 10–100×.
+
+## Hand-eye calibration
+
+The camera and the robot must agree on where things are. Calibration moves the robot through
+known poses while the camera watches a target, then solves for the fixed transform between them.
+A 2 mm calibration error becomes a 2 mm placement error on every carton.
+
+<Interview>
+"Perception turns a point cloud into poses: crop, RANSAC planes, segment rectangles, estimate pose,
+then transform through hand-eye calibration. k-d trees and voxel grids keep it real-time."
+</Interview>

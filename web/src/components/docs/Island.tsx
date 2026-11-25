@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useEffect, useMemo } from "react";
 import { Studio } from "@/components/three/Studio";
 import { AabbScene, CompareStations, FramesScene, OrderStations, PlanStation, SupportScene } from "@/components/three/scenes";
+import { DepalScene, PATTERN_TOTAL, PatternsScene, ScanScene, SuctionScene } from "@/components/three/scenes2";
 import type { SceneKind } from "@/lib/docs";
 import { usePlayer, type Player } from "@/lib/player";
 import { usePlans } from "@/lib/usePlans";
@@ -19,6 +20,10 @@ const CAMERAS: Record<SceneKind, { camera: [number, number, number]; target: [nu
   frames: { camera: [2.4, 2.4, 3.4], target: [0, 0.6, 0] },
   aabb: { camera: [2.0, 1.6, 3.0], target: [0, 0.3, 0] },
   support: { camera: [1.9, 1.8, 3.1], target: [0, 0.45, 0] },
+  scan: { camera: [3.4, 2.9, 4.0], target: [0, 1.0, 0] },
+  suction: { camera: [1.75, 1.35, 2.25], target: [0, 0.5, 0] },
+  depal: { camera: [3.1, 2.5, 3.6], target: [0, 0.8, 0] },
+  patterns: { camera: [1.6, 3.6, 6.6], target: [0, 0.7, 0] },
 };
 
 // Replay the plan, pause on the finished pallet, then start over.
@@ -38,6 +43,7 @@ export default function Island({ scene }: { scene: SceneKind }) {
     if (scene === "plan-greedy") return plans.greedy.placements.length;
     if (scene === "compare") return Math.max(plans.greedy.placements.length, plans.ep.placements.length);
     if (scene === "orders") return plans.wes.metrics.boxes;
+    if (scene === "patterns") return PATTERN_TOTAL;
     return plans.ep.placements.length;
   }, [plans, scene]);
   const { player, snapshot } = usePlayer(total, { autoplay: true, speed: scene === "orders" ? 8 : 3 });
@@ -55,6 +61,10 @@ export default function Island({ scene }: { scene: SceneKind }) {
           {scene === "frames" && <FramesScene ep={plans.ep} />}
           {scene === "aabb" && <AabbScene />}
           {scene === "support" && <SupportScene />}
+          {scene === "scan" && <ScanScene ep={plans.ep} />}
+          {scene === "suction" && <SuctionScene />}
+          {scene === "depal" && <DepalScene ep={plans.ep} />}
+          {scene === "patterns" && <PatternsScene source={player} />}
         </Studio>
       )}
       <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3 text-[12px] text-mute">

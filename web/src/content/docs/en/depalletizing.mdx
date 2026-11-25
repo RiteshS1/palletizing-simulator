@@ -1,0 +1,40 @@
+# Depalletizing
+
+At the other end of the supply chain, pallets arrive at a store or distribution centre and have to
+be taken apart. **Depalletizing** is palletizing in reverse, and in some ways harder.
+
+## Why it is harder
+
+- **Unknown layout.** The robot didn't build this pallet. It has to discover where each carton is,
+  every time, with 3D vision (see **Perception and vision**).
+- **Unknown sizes.** Mixed pallets from suppliers have no reliable layout data; sizes come from what
+  the camera sees, and only the tops are visible.
+- **Shifted loads.** Transport makes cartons lean, slip and dent; nothing sits where it was planned.
+
+## The order matters: top first
+
+A carton can only be picked if nothing rests on it and the gripper can reach its top face. That is
+the **reachability rule** again, in reverse: pick from the highest layer down. Within a layer, a good
+order also keeps the remaining stack stable (don't leave a tall, thin tower standing alone).
+
+The live model runs the planner's own plan **backwards**: the last carton placed is the first one
+removed, rising with the gripper.
+
+## The pick loop
+
+1. Capture a point cloud of the whole pallet.
+2. Detect the top-most cartons and their poses.
+3. Choose a carton that is reachable, fully visible and safe to remove.
+4. Pick it, verify the grip (vacuum sensor), place it on the outfeed conveyor.
+5. Repeat, re-scanning as the stack changes.
+
+## Graphs and ordering
+
+"Which cartons support which" is a directed graph: an edge from A to B means A rests on B. A valid
+unstacking order is a **topological order** of that graph (remove a node only once nothing points
+into it), which is exactly what top-first achieves. The same structure, reversed, is a valid stacking order.
+
+## Measuring the cell
+
+Depalletizing cells are judged on **picks per hour**, **pick success rate** and how often a person
+has to intervene. Good perception and a cautious choice of the next carton matter more than raw arm speed.

@@ -1,0 +1,47 @@
+# Grippers and suction
+
+The **end-effector** is the part of the robot that touches the product. For cartons, the workhorse is
+the **vacuum gripper**: a plate of suction cups connected to a vacuum source.
+
+## How suction holds a carton
+
+A cup sealed on a surface has lower pressure inside than the air outside. The holding force is that
+pressure difference times the sealed area:
+
+```text
+F = ΔP × A × n
+```
+
+with ΔP the vacuum level (Pa), A the area of one cup (m²) and n the number of cups touching the carton.
+
+**Worked example.** Four cups of 40 mm diameter (A ≈ 0.00126 m² each) at ΔP = 60 kPa:
+F ≈ 60 000 × 0.00126 × 4 ≈ **302 N**, enough to hold about 30 kg statically. Real designs apply a
+**safety factor** of 2 or more, because the robot accelerates: a vertical acceleration of 5 m/s² adds
+50% to the force needed, and a fast horizontal move tries to peel the carton off sideways.
+
+## Why it sometimes fails
+
+- **Porous or recycled board** leaks air: the vacuum generator cannot hold ΔP.
+- **Tape seams, labels and bulging lids** break the seal of the cups that sit on them.
+- **Overhanging cups** on a small carton suck air instead of cardboard. Grippers solve this with
+  **zones**: groups of cups switched separately, so only the cups over the carton turn on.
+
+## Sensing the grip
+
+A pressure sensor per zone confirms a good seal before the robot lifts, and watches during the move.
+If the vacuum drops, the robot stops before the carton falls: a simple sensor that prevents most dropped loads.
+
+## Other end-effectors
+
+| Gripper | When |
+|---|---|
+| Vacuum (cups or foam pad) | most cartons, fast, simple |
+| Fork or clamp | heavy, open or very porous cases |
+| Layer gripper | lifting a whole layer of identical cartons at once |
+| Fingered / adaptive | bags, irregular items |
+
+## In this project
+
+The simulator's gripper is a vacuum plate with four cups, and the planner's **reachability** rule
+exists because of it: a top-down suction gripper cannot slide a carton under an overhang. The live
+model shows the airflow into the cups while vacuum is on.

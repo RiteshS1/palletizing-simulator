@@ -15,6 +15,7 @@ import { ArrowRight } from "@/components/ui/ArrowRight";
 
 const Studio = dynamic(() => import("@/components/three/Studio").then((m) => m.Studio), { ssr: false });
 const PlanStation = dynamic(() => import("@/components/three/scenes").then((m) => m.PlanStation), { ssr: false });
+const DustMotes = dynamic(() => import("@/components/three/effects").then((m) => m.DustMotes), { ssr: false });
 
 // Wide screens: the pallet sits to the right of the headline. Narrow screens: centred, further back
 // and lower, so the copy stays readable. The camera rises slowly as the stack grows.
@@ -29,7 +30,10 @@ function CameraRig({ player }: { player: Player }) {
     const k = wide ? 1.18 : 1.75;
     base.set((2.7 + pointer.x * 0.45) * k, (1.6 + p * 1.0 - pointer.y * 0.25) * k, (3.1 - pointer.x * 0.2) * k);
     camera.position.lerp(base, Math.min(1, dt * 1.6));
-    target.set(wide ? -1.15 : 0, (wide ? 0.42 : 1.3) + p * 0.45, 0);
+    // the less wide the screen, the further right the pallet sits, so it never runs under the headline
+    // (narrow windows give the headline a larger share of the width, so shift a little more there too)
+    const shift = wide ? -1.2 - Math.max(0, 2.1 - size.width / size.height) * 1.0 - Math.max(0, (1400 - size.width) / 1000) * 0.9 : 0;
+    target.set(shift, (wide ? 0.42 : 1.3) + p * 0.45, 0);
     camera.lookAt(target);
   });
   return null;
@@ -67,10 +71,13 @@ export function Hero() {
         {plan && (
           <Studio camera={[2.7, 1.6, 3.1]} controls={false} env="studio" background="#f7f7f5" quality="high">
             <CameraRig player={player} />
+            <DustMotes />
             <PlanStation plan={plan} source={player} interactive overlays={{ com: false }} />
           </Studio>
         )}
       </div>
+      {/* portrait screens: a soft scrim behind the copy so the robot's mast never cuts through the text */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-[5] hidden h-[58%] bg-gradient-to-b from-paper via-paper/90 to-paper/0 [@media(max-aspect-ratio:23/20)]:block" aria-hidden />
       {/* dissolve: the stage melts into the page instead of ending on a hard edge */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[5] h-[15%] bg-gradient-to-b from-paper/0 via-paper/60 to-paper" aria-hidden />
 

@@ -12,6 +12,7 @@ import { useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import type { PlaybackSource } from "@/lib/player";
 import { supportPolygon, type PalletSpec, type Placement } from "@/lib/plan";
+import { Burst, type BurstHandle } from "./effects";
 import { cardboardTexture, labelTexture, woodTexture } from "./textures";
 
 const MM = 0.001;
@@ -136,6 +137,8 @@ function Cartons({
   const wrap = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState<number | null>(null);
   const [focus, setFocus] = useState<{ step: number; moving: boolean }>({ step: 0, moving: false });
+  const dust = useRef<BurstHandle>(null);
+  const landed = useRef(-1); // last step that already puffed its dust
   const hoverLift = useRef<number[]>(items.map(() => 0));
 
   const cardboard = useMemo(() => cardboardTexture(), []);
@@ -166,6 +169,13 @@ function Cartons({
         g.visible = false;
       }
     });
+
+    // Touch-down: when the lowering phase ends (t = 0.7) the carton meets its support: puff of dust.
+    if (active && t >= 0.7 && landed.current !== active.step) {
+      landed.current = active.step;
+      dust.current?.emit(active.x + active.sx / 2, active.y + active.sy / 2, active.z, { n: 46, ring: [active.sx, active.sy], spread: 230, up: 170 });
+    }
+    if (!active && step === 0) landed.current = -1;
 
     const focusItem: StationItem | null = active ?? last;
     const o = outline.current;
@@ -250,6 +260,7 @@ function Cartons({
       </lineSegments>
 
       <VacuumGripper groupRef={gripper} plateRef={plate} />
+      <Burst handle={dust} size={0.09} />
 
       <mesh ref={wrap} visible={false}>
         <boxGeometry args={[1, 1, 1]} />
